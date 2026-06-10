@@ -28,6 +28,6 @@ jobs:
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-org-id: h1723656935-3114s-projects
+          vercel-project-id: prj_Ej2c6K5lW9rP9U8U7qU45X63
           vercel-args: '--prod'
