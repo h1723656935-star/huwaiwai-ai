@@ -14,6 +14,7 @@ export interface Video {
   duration: string;
   thumbnail: string;
   url: string;
+  videoFile?: string;
 }
 
 export interface Skill {
@@ -33,101 +34,11 @@ export interface Stat {
   suffix: string;
 }
 
-export const artworks: Artwork[] = [
-  {
-    id: '1',
-    title: '樱花少女',
-    category: '二次元',
-    tags: ['少女', '樱花', '唯美'],
-    date: '2025-01-15',
-    image: 'https://picsum.photos/seed/sakura/400/500',
-  },
-  {
-    id: '2',
-    title: '古风庭院',
-    category: '古风',
-    tags: ['古风', '庭院', '水墨'],
-    date: '2025-01-10',
-    image: 'https://picsum.photos/seed/garden/400/400',
-  },
-  {
-    id: '3',
-    title: '星空下的梦',
-    category: '少女风',
-    tags: ['星空', '梦幻', '少女'],
-    date: '2025-01-08',
-    image: 'https://picsum.photos/seed/starry/400/600',
-  },
-  {
-    id: '4',
-    title: '温暖午后',
-    category: '温暖风格',
-    tags: ['温暖', '阳光', '治愈'],
-    date: '2025-01-05',
-    image: 'https://picsum.photos/seed/sunny/400/450',
-  },
-  {
-    id: '5',
-    title: '魔法少女',
-    category: '二次元',
-    tags: ['魔法', '少女', '奇幻'],
-    date: '2025-01-03',
-    image: 'https://picsum.photos/seed/magic/400/550',
-  },
-  {
-    id: '6',
-    title: '山水画卷',
-    category: '古风',
-    tags: ['山水', '古风', '意境'],
-    date: '2024-12-28',
-    image: 'https://picsum.photos/seed/landscape/400/400',
-  },
-  {
-    id: '7',
-    title: '猫咪咖啡馆',
-    category: '温暖风格',
-    tags: ['猫咪', '治愈', '日常'],
-    date: '2024-12-25',
-    image: 'https://picsum.photos/seed/cat/400/500',
-  },
-  {
-    id: '8',
-    title: '花之精灵',
-    category: '少女风',
-    tags: ['精灵', '花朵', '唯美'],
-    date: '2024-12-20',
-    image: 'https://picsum.photos/seed/flower/400/600',
-  },
-];
+export const artworks: Artwork[] = [];
 
 export const categories = ['全部', '二次元', '古风', '少女风', '温暖风格'];
 
-export const videos: Video[] = [
-  {
-    id: '1',
-    title: 'AI绘画创作过程',
-    description: '从构思到成品，展示AI绘画的完整创作流程',
-    duration: '15:30',
-    thumbnail: 'https://picsum.photos/seed/video1/600/340',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-  {
-    id: '2',
-    title: '二次元角色设计',
-    description: '使用AI设计原创二次元角色的技巧分享',
-    duration: '12:15',
-    thumbnail: 'https://picsum.photos/seed/video2/600/340',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-  {
-    id: '3',
-    title: 'AI视频制作教程',
-    description: '从零开始学习AI视频生成与编辑',
-    duration: '20:00',
-    thumbnail: 'https://picsum.photos/seed/video3/600/340',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-];
+export const videos: Video[] = [];
 
 export const skills: Skill[] = [
   { name: 'Midjourney', level: 95 },

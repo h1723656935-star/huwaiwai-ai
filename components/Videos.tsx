@@ -1,13 +1,41 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { videos } from '@/data/works';
 import { Play, X } from 'lucide-react';
-import Image from 'next/image';
+import { getVideos } from '@/lib/worksService';
+import type { Video } from '@/lib/worksService';
 
 export default function Videos() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    setLoading(true);
+    try {
+      const dbVideos = await getVideos();
+      
+      // 从 localStorage 获取用户上传的视频（作为后备）
+      const stored = localStorage.getItem('userVideos');
+      const localVideos: Video[] = stored ? JSON.parse(stored) : [];
+      
+      // 合并视频，数据库优先
+      const allVideos = [...dbVideos, ...localVideos];
+      setVideos(allVideos);
+    } catch (error) {
+      console.error('Failed to fetch videos:', error);
+      // 回退到 localStorage
+      const stored = localStorage.getItem('userVideos');
+      setVideos(stored ? JSON.parse(stored) : []);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section id="videos" className="py-20 px-4 bg-secondary/30">
@@ -25,48 +53,91 @@ export default function Videos() {
           <p className="text-gray-500 max-w-2xl mx-auto">
             记录创作过程，分享AI视频制作技巧与心得
           </p>
+          <motion.a
+            href="/admin"
+            className="inline-flex items-center gap-2 mt-4 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span>+</span> 上传视频
+          </motion.a>
+          <motion.button
+            onClick={fetchVideos}
+            className="inline-flex items-center gap-2 ml-3 mt-4 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            ↻ 刷新
+          </motion.button>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videos.map((video, index) => (
-            <motion.div
-              key={video.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-glow transition-all duration-500 cursor-pointer"
-              onClick={() => setSelectedVideo(video.url)}
-            >
-              <div className="relative aspect-video overflow-hidden">
-                <Image
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  fill
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <motion.div
-                    className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
-                  </motion.div>
+        {loading ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex justify-center items-center py-12"
+          >
+            <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {videos.map((video, index) => (
+              <motion.div
+                key={video.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-glow transition-all duration-500 cursor-pointer"
+                onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  {video.thumbnail.startsWith('data:') ? (
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                  ) : (
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <motion.div
+                      className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                    </motion.div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 rounded-full text-white text-sm">
+                    {video.duration}
+                  </div>
                 </div>
-                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 rounded-full text-white text-sm">
-                  {video.duration}
+                <div className="p-5">
+                  <h3 className="font-semibold text-lg mb-2 text-gray-800 group-hover:text-primary transition-colors">
+                    {video.title}
+                  </h3>
+                  <p className="text-gray-500 text-sm">{video.description}</p>
                 </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-semibold text-lg mb-2 text-gray-800 group-hover:text-primary transition-colors">
-                  {video.title}
-                </h3>
-                <p className="text-gray-500 text-sm">{video.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {!loading && videos.length === 0 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-gray-500 mt-12"
+          >
+            暂无视频作品，快去上传吧！
+          </motion.p>
+        )}
       </div>
 
       <AnimatePresence>
@@ -91,13 +162,22 @@ export default function Videos() {
               >
                 <X className="w-6 h-6 text-white" />
               </button>
-              <iframe
-                src={selectedVideo.replace('watch?v=', 'embed/')}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full"
-              />
+              {selectedVideo.startsWith('data:') ? (
+                <video
+                  src={selectedVideo}
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                />
+              ) : (
+                <iframe
+                  src={selectedVideo.replace('watch?v=', 'embed/')}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              )}
             </motion.div>
           </motion.div>
         )}

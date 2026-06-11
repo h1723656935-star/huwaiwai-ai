@@ -1,10 +1,40 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import SparklesBackground from './SparklesBackground';
 import AssistantCharacter from './AssistantCharacter';
+import * as worksService from '@/lib/worksService';
+import type { SiteConfig } from '@/lib/worksService';
 
 export default function Hero() {
+  const [config, setConfig] = useState<SiteConfig | null>(null);
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configData = await worksService.getSiteConfig();
+      setConfig(configData);
+    } catch (error) {
+      console.error('Failed to load config:', error);
+    }
+  };
+
+  if (!config) {
+    return (
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
+        />
+      </section>
+    );
+  }
+
   return (
     <section
       id="home"
@@ -33,7 +63,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4"
           >
-            <span className="gradient-text">胡歪歪</span>
+            <span className="gradient-text">{config.heroTitle}</span>
           </motion.h1>
 
           <motion.p
@@ -42,7 +72,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl sm:text-2xl text-gray-600 mb-6"
           >
-            AI Creator & Digital Artist
+            {config.heroSubtitle}
           </motion.p>
 
           <motion.div
@@ -51,8 +81,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="text-gray-500 mb-8 max-w-xl mx-auto"
           >
-            <p className="text-lg">专注AI绘画与视频创作，</p>
-            <p className="text-lg">探索二次元美学与梦幻表达</p>
+            <p className="text-lg">{config.heroDescription}</p>
           </motion.div>
 
           <motion.div

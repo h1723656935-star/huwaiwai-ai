@@ -1,9 +1,51 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { skills, timeline, stats } from '@/data/works';
+import * as worksService from '@/lib/worksService';
+import type { Skill, TimelineItem, Stat, SiteConfig } from '@/lib/worksService';
 
 export default function About() {
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [config, setConfig] = useState<SiteConfig | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [skillsData, timelineData, statsData, configData] = await Promise.all([
+        worksService.getSkills(),
+        worksService.getTimeline(),
+        worksService.getStats(),
+        worksService.getSiteConfig(),
+      ]);
+      setSkills(skillsData);
+      setTimeline(timelineData);
+      setStats(statsData);
+      setConfig(configData);
+    } catch (error) {
+      console.error('Failed to load about data:', error);
+    }
+  };
+
+  if (!config) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  const aboutTags = config.aboutTags.split(',').map(tag => tag.trim()).filter(Boolean);
+
   return (
     <section id="about" className="py-20 px-4 bg-background">
       <div className="max-w-7xl mx-auto">
@@ -15,7 +57,7 @@ export default function About() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
-            关于我
+            {config.aboutTitle}
           </h2>
           <p className="text-gray-500 max-w-2xl mx-auto">
             探索AI创作的无限可能，用技术与艺术创造美好
@@ -34,7 +76,7 @@ export default function About() {
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 animate-pulse-soft" />
               <div className="absolute inset-4 rounded-full overflow-hidden border-4 border-white shadow-xl">
                 <img
-                  src="https://picsum.photos/seed/avatar/300/300"
+                  src={config.avatarUrl}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -55,15 +97,15 @@ export default function About() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">胡歪歪</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">{config.aboutName}</h3>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              热爱二次元文化的AI创作者，专注于AI绘画与视频创作领域。通过Midjourney、Stable Diffusion等工具，探索数字艺术的无限可能。
+              {config.aboutDescription.split('。')[0]}。
             </p>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              相信技术与艺术的结合能够创造出令人惊叹的作品，致力于用AI技术将想象变为现实。
+              {config.aboutDescription.split('。').slice(1).join('。')}
             </p>
             <div className="flex flex-wrap gap-3">
-              {['AI创作', '二次元', '数字艺术', '视频制作'].map((tag) => (
+              {aboutTags.map((tag) => (
                 <span
                   key={tag}
                   className="px-4 py-2 bg-secondary rounded-full text-sm text-gray-600"
@@ -88,7 +130,7 @@ export default function About() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {skills.map((skill, index) => (
               <motion.div
-                key={skill.name}
+                key={skill.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -128,7 +170,7 @@ export default function About() {
             <div className="space-y-8 md:space-y-0">
               {timeline.map((item, index) => (
                 <motion.div
-                  key={item.year}
+                  key={item.id}
                   initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -160,7 +202,7 @@ export default function About() {
         >
           {stats.map((stat, index) => (
             <motion.div
-              key={stat.label}
+              key={stat.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -178,9 +220,9 @@ export default function About() {
 }
 
 function StatNumber({ value, suffix }: { value: number; suffix: string }) {
-  const [displayValue, setDisplayValue] = React.useState(0);
+  const [displayValue, setDisplayValue] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const duration = 2000;
     const steps = 60;
     const increment = value / steps;
@@ -208,5 +250,3 @@ function StatNumber({ value, suffix }: { value: number; suffix: string }) {
     </motion.span>
   );
 }
-
-import React from 'react';

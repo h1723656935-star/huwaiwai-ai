@@ -1,19 +1,27 @@
 "use client";
 
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { socialLinks } from '@/data/works';
-import { Mail, MessageCircle, Video, Music, BookOpen, Github } from 'lucide-react';
-
-const iconMap: Record<string, React.ReactNode> = {
-  Mail: <Mail className="w-6 h-6" />,
-  MessageCircle: <MessageCircle className="w-6 h-6" />,
-  Video: <Video className="w-6 h-6" />,
-  Music: <Music className="w-6 h-6" />,
-  BookOpen: <BookOpen className="w-6 h-6" />,
-  Github: <Github className="w-6 h-6" />,
-};
+import * as worksService from '@/lib/worksService';
+import * as Icons from 'lucide-react';
+import type { SocialLink } from '@/lib/worksService';
 
 export default function Contact() {
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+
+  useEffect(() => {
+    loadSocialLinks();
+  }, []);
+
+  const loadSocialLinks = async () => {
+    try {
+      const links = await worksService.getSocialLinks();
+      setSocialLinks(links);
+    } catch (error) {
+      console.error('Failed to load social links:', error);
+    }
+  };
+
   return (
     <section id="contact" className="py-20 px-4 bg-secondary/30">
       <div className="max-w-4xl mx-auto">
@@ -41,7 +49,7 @@ export default function Contact() {
         >
           {socialLinks.map((link, index) => (
             <motion.a
-              key={link.name}
+              key={link.id}
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
@@ -53,7 +61,7 @@ export default function Contact() {
               whileHover={{ scale: 1.1, y: -5 }}
               whileTap={{ scale: 0.95 }}
             >
-              {iconMap[link.icon]}
+              {getIcon(link.icon)}
               <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-gray-600 text-sm whitespace-nowrap">
                 {link.name}
               </span>
@@ -127,4 +135,20 @@ export default function Contact() {
       </div>
     </section>
   );
+}
+
+function getIcon(iconName: string) {
+  const iconMap: Record<string, React.ReactNode> = {
+    Mail: <Icons.Mail className="w-6 h-6" />,
+    MessageCircle: <Icons.MessageCircle className="w-6 h-6" />,
+    Video: <Icons.Video className="w-6 h-6" />,
+    Music: <Icons.Music className="w-6 h-6" />,
+    BookOpen: <Icons.BookOpen className="w-6 h-6" />,
+    Github: <Icons.Github className="w-6 h-6" />,
+    Twitter: <Icons.Twitter className="w-6 h-6" />,
+    Instagram: <Icons.Instagram className="w-6 h-6" />,
+    Linkedin: <Icons.Linkedin className="w-6 h-6" />,
+    Youtube: <Icons.Youtube className="w-6 h-6" />,
+  };
+  return iconMap[iconName] || <Icons.Mail className="w-6 h-6" />;
 }

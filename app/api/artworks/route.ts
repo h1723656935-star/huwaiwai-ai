@@ -1,0 +1,78 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+
+interface Artwork {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  date: string;
+  image: string;
+}
+
+const initialArtworks: Artwork[] = [
+  { id: '1', title: '樱花少女', category: '二次元', tags: ['少女', '樱花', '唯美'], date: '2025-01-15', image: 'https://picsum.photos/seed/sakura/400/500' },
+  { id: '2', title: '古风庭院', category: '古风', tags: ['古风', '庭院', '水墨'], date: '2025-01-10', image: 'https://picsum.photos/seed/garden/400/400' },
+  { id: '3', title: '星空下的梦', category: '少女风', tags: ['星空', '梦幻', '少女'], date: '2025-01-08', image: 'https://picsum.photos/seed/starry/400/600' },
+  { id: '4', title: '温暖午后', category: '温暖风格', tags: ['温暖', '阳光', '治愈'], date: '2025-01-05', image: 'https://picsum.photos/seed/sunny/400/450' },
+  { id: '5', title: '魔法少女', category: '二次元', tags: ['魔法', '少女', '奇幻'], date: '2025-01-03', image: 'https://picsum.photos/seed/magic/400/550' },
+  { id: '6', title: '山水画卷', category: '古风', tags: ['山水', '古风', '意境'], date: '2024-12-28', image: 'https://picsum.photos/seed/landscape/400/400' },
+  { id: '7', title: '猫咪咖啡馆', category: '温暖风格', tags: ['猫咪', '治愈', '日常'], date: '2024-12-25', image: 'https://picsum.photos/seed/cat/400/500' },
+  { id: '8', title: '花之精灵', category: '少女风', tags: ['精灵', '花朵', '唯美'], date: '2024-12-20', image: 'https://picsum.photos/seed/flower/400/600' },
+];
+
+let memoryArtworks: Artwork[] = [...initialArtworks];
+
+export async function GET() {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('artworks').select('*');
+      if (error) throw error;
+      return NextResponse.json(data || []);
+    } catch {
+      return NextResponse.json(memoryArtworks);
+    }
+  }
+  return NextResponse.json(memoryArtworks);
+}
+
+export async function POST(request: Request) {
+  const newArtwork: Omit<Artwork, 'id'> = await request.json();
+  
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('artworks')
+        .insert([{ ...newArtwork, tags: JSON.stringify(newArtwork.tags) }])
+        .select();
+      if (error) throw error;
+      return NextResponse.json(data?.[0] || {}, { status: 201 });
+    } catch {
+      // 如果数据库失败，使用内存存储
+    }
+  }
+  
+  const artwork: Artwork = {
+    ...newArtwork,
+    id: Date.now().toString(),
+  };
+  memoryArtworks.push(artwork);
+  return NextResponse.json(artwork, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  const { id } = await request.json();
+  
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('artworks').delete().eq('id', id);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    } catch {
+      // 如果数据库失败，使用内存存储
+    }
+  }
+  
+  memoryArtworks = memoryArtworks.filter(artwork => artwork.id !== id);
+  return NextResponse.json({ success: true });
+}
