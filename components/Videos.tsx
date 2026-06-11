@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, X } from 'lucide-react';
+import { Play, X, Video as VideoIcon } from 'lucide-react';
 import { getVideos } from '@/lib/worksService';
 import type { Video } from '@/lib/worksService';
 
@@ -143,18 +143,21 @@ export default function Videos() {
                 onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
               >
                 <div className="relative aspect-video overflow-hidden">
-                  {video.thumbnail.startsWith('data:') ? (
+                  {video.thumbnail && video.thumbnail.length > 0 ? (
                     <img
                       src={video.thumbnail}
                       alt={video.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      onError={(e) => {
+                        // 图片加载失败时显示占位符
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement?.classList.add('bg-gradient-to-br', 'from-pink-200', 'to-purple-300');
+                      }}
                     />
                   ) : (
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-pink-200 to-purple-300 flex items-center justify-center">
+                      <VideoIcon className="w-16 h-16 text-white/60" />
+                    </div>
                   )}
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <motion.div
