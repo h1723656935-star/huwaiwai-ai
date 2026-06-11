@@ -39,15 +39,15 @@ export default function Artworks() {
     }
   };
 
-  // 动态获取分类列表：从作品数据 + localStorage 自定义分类
+  // 动态获取分类列表：从作品数据 + localStorage 自定义图片分类
   const getDynamicCategories = (): string[] => {
     const cats = new Set<string>();
     cats.add('全部');
     // 从已有作品提取分类
     artworks.forEach(w => { if (w.category) cats.add(w.category); });
-    // 从 localStorage 获取自定义分类
+    // 从 localStorage 获取自定义图片分类
     try {
-      const stored = localStorage.getItem('customCategories');
+      const stored = localStorage.getItem('imageCategories');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {

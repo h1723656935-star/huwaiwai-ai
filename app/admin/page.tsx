@@ -47,7 +47,6 @@ interface SocialLinkForm {
   url: string;
 }
 
-const defaultCategories = ['二次元', '古风', '少女风', '温暖风格'];
 const iconOptions = ['Mail', 'MessageCircle', 'Video', 'Music', 'BookOpen', 'Github', 'Twitter', 'Instagram', 'Linkedin', 'Youtube'];
 const ADMIN_PASSWORD = 'ai@studio2024';
 
@@ -120,9 +119,13 @@ export default function AdminPage() {
   const [socialLinkForm, setSocialLinkForm] = useState<SocialLinkForm>({ name: '', icon: 'Mail', url: '' });
   const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
   
-  // 自定义分类标签
-  const [customCategories, setCustomCategories] = useState<string[]>(defaultCategories);
-  const [newCategory, setNewCategory] = useState('');
+  // 分类标签 - 图片和视频独立
+  const defaultImageCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
+  const defaultVideoCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
+  const [imageCategories, setImageCategories] = useState<string[]>(defaultImageCategories);
+  const [videoCategories, setVideoCategories] = useState<string[]>(defaultVideoCategories);
+  const [newImageCategory, setNewImageCategory] = useState('');
+  const [newVideoCategory, setNewVideoCategory] = useState('');
   const [videoCategory, setVideoCategory] = useState('二次元');
 
   // 状态
@@ -167,50 +170,110 @@ export default function AdminPage() {
 
   // 加载自定义分类
   useEffect(() => {
-    const stored = localStorage.getItem('customCategories');
-    if (stored) {
+    const storedImg = localStorage.getItem('imageCategories');
+    if (storedImg) {
       try {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(storedImg);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCustomCategories(parsed);
+          setImageCategories(parsed);
         }
       } catch {
-        setCustomCategories(defaultCategories);
+        setImageCategories(defaultImageCategories);
+      }
+    }
+    const storedVid = localStorage.getItem('videoCategories');
+    if (storedVid) {
+      try {
+        const parsed = JSON.parse(storedVid);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setVideoCategories(parsed);
+        }
+      } catch {
+        setVideoCategories(defaultVideoCategories);
       }
     }
   }, []);
 
   // 保存自定义分类到localStorage
   useEffect(() => {
-    localStorage.setItem('customCategories', JSON.stringify(customCategories));
-  }, [customCategories]);
+    localStorage.setItem('imageCategories', JSON.stringify(imageCategories));
+  }, [imageCategories]);
+  useEffect(() => {
+    localStorage.setItem('videoCategories', JSON.stringify(videoCategories));
+  }, [videoCategories]);
 
-  // 添加自定义分类
-  const handleAddCategory = () => {
-    const trimmed = newCategory.trim();
+  // 添加图片分类
+  const handleAddImageCategory = () => {
+    const trimmed = newImageCategory.trim();
     if (!trimmed) {
       alert('请输入分类名称');
       return;
     }
-    if (customCategories.includes(trimmed)) {
+    if (imageCategories.includes(trimmed)) {
       alert('该分类已存在');
       return;
     }
-    setCustomCategories([...customCategories, trimmed]);
-    setNewCategory('');
+    setImageCategories([...imageCategories, trimmed]);
+    setNewImageCategory('');
   };
 
-  // 删除自定义分类
-  const handleDeleteCategory = (category: string) => {
-    if (!confirm(`确定要删除分类"${category}"吗？`)) return;
-    const filtered = customCategories.filter(c => c !== category);
-    setCustomCategories(filtered);
-    // 如果当前选中的分类被删除，重置为默认第一个
-    if (imageForm.category === category) {
-      setImageForm({ ...imageForm, category: filtered[0] || defaultCategories[0] });
+  // 添加视频分类
+  const handleAddVideoCategory = () => {
+    const trimmed = newVideoCategory.trim();
+    if (!trimmed) {
+      alert('请输入分类名称');
+      return;
     }
+    if (videoCategories.includes(trimmed)) {
+      alert('该分类已存在');
+      return;
+    }
+    setVideoCategories([...videoCategories, trimmed]);
+    setNewVideoCategory('');
+  };
+
+  // 删除图片分类
+  const handleDeleteImageCategory = (category: string) => {
+    if (!confirm(`确定要删除图片分类"${category}"吗？`)) return;
+    const filtered = imageCategories.filter(c => c !== category);
+    setImageCategories(filtered);
+    if (imageForm.category === category) {
+      setImageForm({ ...imageForm, category: filtered[0] || defaultImageCategories[0] });
+    }
+  };
+
+  // 删除视频分类
+  const handleDeleteVideoCategory = (category: string) => {
+    if (!confirm(`确定要删除视频分类"${category}"吗？`)) return;
+    const filtered = videoCategories.filter(c => c !== category);
+    setVideoCategories(filtered);
     if (videoCategory === category) {
-      setVideoCategory(filtered[0] || defaultCategories[0]);
+      setVideoCategory(filtered[0] || defaultVideoCategories[0]);
+    }
+  };
+
+  // 清空所有作品
+  const handleClearAllWorks = async (type: 'image' | 'video') => {
+    if (!confirm(`确定要清空所有${type === 'image' ? '图片' : '视频'}作品吗？此操作不可恢复！`)) return;
+    if (!confirm('再次确认：所有作品数据将被永久删除！')) return;
+    try {
+      if (type === 'image') {
+        for (const art of userArtworks) {
+          await worksService.deleteArtwork(art.id);
+        }
+        localStorage.removeItem('userArtworks');
+        setUserArtworks([]);
+      } else {
+        for (const vid of userVideos) {
+          await worksService.deleteVideo(vid.id);
+        }
+        localStorage.removeItem('userVideos');
+        setUserVideos([]);
+      }
+      alert('清空完成');
+    } catch (error) {
+      console.error('Clear failed:', error);
+      alert('清空失败：' + (error as Error).message);
     }
   };
 
@@ -737,35 +800,35 @@ export default function AdminPage() {
                         onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       >
-                        {customCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        {imageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                       </select>
                       {/* 分类管理 */}
                       <div className="border border-primary/20 rounded-xl p-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">管理分类标签</p>
+                        <p className="text-sm font-medium text-gray-700">管理图片分类标签</p>
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            value={newCategory}
-                            onChange={(e) => setNewCategory(e.target.value)}
+                            value={newImageCategory}
+                            onChange={(e) => setNewImageCategory(e.target.value)}
                             className="flex-1 px-3 py-2 rounded-lg border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                             placeholder="新分类名称"
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageCategory(); } }}
                           />
                           <button
                             type="button"
-                            onClick={handleAddCategory}
+                            onClick={handleAddImageCategory}
                             className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
                           >
                             添加
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {customCategories.map(cat => (
+                          {imageCategories.map(cat => (
                             <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
                               {cat}
                               <button
                                 type="button"
-                                onClick={() => handleDeleteCategory(cat)}
+                                onClick={() => handleDeleteImageCategory(cat)}
                                 className="hover:bg-primary/20 rounded-full p-0.5"
                               >
                                 <Icons.X className="w-3 h-3" />
@@ -830,13 +893,50 @@ export default function AdminPage() {
                       placeholder="视频标题"
                       required
                     />
-                    <select
-                      value={videoForm.category}
-                      onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    >
-                      {customCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
+                    <div className="space-y-2">
+                      <select
+                        value={videoForm.category}
+                        onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      >
+                        {videoCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                      {/* 视频分类管理 */}
+                      <div className="border border-primary/20 rounded-xl p-3 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">管理视频分类标签</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newVideoCategory}
+                            onChange={(e) => setNewVideoCategory(e.target.value)}
+                            className="flex-1 px-3 py-2 rounded-lg border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                            placeholder="新分类名称"
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideoCategory(); } }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddVideoCategory}
+                            className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
+                          >
+                            添加
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {videoCategories.map(cat => (
+                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                              {cat}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteVideoCategory(cat)}
+                                className="hover:bg-primary/20 rounded-full p-0.5"
+                              >
+                                <Icons.X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     <textarea
                       value={videoForm.description}
                       onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })}
@@ -899,9 +999,19 @@ export default function AdminPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="bg-white rounded-3xl shadow-lg p-6"
               >
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : `视频作品 (${userVideos.length})`}
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : `视频作品 (${userVideos.length})`}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => handleClearAllWorks(worksTab)}
+                    className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1"
+                  >
+                    <Icons.Trash2 className="w-3.5 h-3.5" />
+                    清空所有
+                  </button>
+                </div>
                 {worksTab === 'image' ? (
                   userArtworks.length === 0 ? (
                     <p className="text-center text-gray-500 py-8">暂无图片作品</p>

@@ -40,15 +40,15 @@ export default function Videos() {
     }
   };
 
-  // 动态获取分类列表：从视频数据 + localStorage 自定义分类
+  // 动态获取分类列表：从视频数据 + localStorage 自定义视频分类
   const getDynamicCategories = (): string[] => {
     const cats = new Set<string>();
     cats.add('全部');
     // 从已有视频提取分类
     videos.forEach(v => { if (v.category) cats.add(v.category); });
-    // 从 localStorage 获取自定义分类
+    // 从 localStorage 获取自定义视频分类
     try {
-      const stored = localStorage.getItem('customCategories');
+      const stored = localStorage.getItem('videoCategories');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
