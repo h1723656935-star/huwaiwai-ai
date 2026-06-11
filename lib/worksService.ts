@@ -118,15 +118,18 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       imageUrl = urlData.publicUrl;
     }
     
+    // 只包含有值的字段，避免数据库缺少字段导致失败
+    const artworkInsert: Record<string, any> = {
+      title: artwork.title,
+      image: imageUrl
+    };
+    if (artwork.category && artwork.category.trim()) artworkInsert.category = artwork.category;
+    if (artwork.tags && artwork.tags.length > 0) artworkInsert.tags = JSON.stringify(artwork.tags);
+    if (artwork.date) artworkInsert.date = artwork.date;
+
     const { data, error } = await supabase
       .from('artworks')
-      .insert([{
-        title: artwork.title,
-        category: artwork.category,
-        tags: JSON.stringify(artwork.tags),
-        date: artwork.date,
-        image: imageUrl
-      }])
+      .insert([artworkInsert])
       .select()
       .single();
     
@@ -310,17 +313,20 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
     }
     
     console.log('Inserting video record...');
+    // 只包含有值的字段，避免数据库缺少字段导致失败
+    const videoInsert: Record<string, any> = {
+      title: video.title,
+      thumbnail: thumbnailUrl
+    };
+    if (video.description && video.description.trim()) videoInsert.description = video.description;
+    if (video.duration) videoInsert.duration = video.duration;
+    if (video.url && video.url.trim()) videoInsert.url = video.url;
+    if (videoFileUrl) videoInsert.videoFile = videoFileUrl;
+    if (video.category && video.category.trim()) videoInsert.category = video.category;
+
     const { data, error } = await supabase
       .from('videos')
-      .insert([{
-        title: video.title,
-        description: video.description,
-        duration: video.duration,
-        thumbnail: thumbnailUrl,
-        url: video.url || videoFileUrl,
-        videoFile: videoFileUrl,
-        category: video.category
-      }])
+      .insert([videoInsert])
       .select()
       .single();
     
