@@ -25,9 +25,11 @@ export default function Videos() {
       const stored = localStorage.getItem('userVideos');
       const localVideos: Video[] = stored ? JSON.parse(stored) : [];
       
-      // 合并视频，数据库优先
-      const allVideos = [...dbVideos, ...localVideos];
-      setVideos(allVideos);
+      // 合并视频，按 id 去重，数据库优先
+      const videoMap = new Map<string, Video>();
+      localVideos.forEach(v => videoMap.set(v.id, v));
+      dbVideos.forEach(v => videoMap.set(v.id, v));
+      setVideos(Array.from(videoMap.values()));
     } catch (error) {
       console.error('Failed to fetch videos:', error);
       // 回退到 localStorage

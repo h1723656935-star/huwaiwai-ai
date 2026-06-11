@@ -24,9 +24,11 @@ export default function Artworks() {
       const stored = localStorage.getItem('userArtworks');
       const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
       
-      // 合并作品，数据库优先
-      const allArtworks = [...dbArtworks, ...localArtworks];
-      setArtworks(allArtworks);
+      // 合并作品，按 id 去重，数据库优先
+      const artworkMap = new Map<string, Artwork>();
+      localArtworks.forEach(a => artworkMap.set(a.id, a));
+      dbArtworks.forEach(a => artworkMap.set(a.id, a));
+      setArtworks(Array.from(artworkMap.values()));
     } catch (error) {
       console.error('Failed to fetch artworks:', error);
       // 回退到 localStorage

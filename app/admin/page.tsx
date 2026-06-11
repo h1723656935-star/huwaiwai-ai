@@ -295,17 +295,33 @@ export default function AdminPage() {
     const video = document.createElement('video');
     video.src = videoDataUrl;
     video.crossOrigin = 'anonymous';
-    video.onloadeddata = () => {
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = () => {
+      // 跳到视频中间位置截图，避免黑屏开头
+      video.currentTime = Math.min(video.duration / 2, 1);
+    };
+
+    video.onseeked = () => {
       const canvas = document.createElement('canvas');
       canvas.width = 600;
       canvas.height = 340;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const thumbnailDataUrl = canvas.toDataURL('image/jpeg');
+        const thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setVideoThumbnailPreview(thumbnailDataUrl);
         setVideoForm(prev => ({ ...prev, thumbnail: thumbnailDataUrl }));
       }
+      // 清理
+      URL.revokeObjectURL(video.src);
+    };
+
+    video.onerror = () => {
+      console.error('视频缩略图生成失败');
     };
   };
 
