@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { categories } from '@/data/works';
 import { getArtworks } from '@/lib/worksService';
 import type { Artwork } from '@/lib/worksService';
 
@@ -38,8 +37,29 @@ export default function Artworks() {
     }
   };
 
-  const filteredArtworks = activeCategory === '全部' 
-    ? artworks 
+  // 动态获取分类列表：从作品数据 + localStorage 自定义分类
+  const getDynamicCategories = (): string[] => {
+    const cats = new Set<string>();
+    cats.add('全部');
+    // 从已有作品提取分类
+    artworks.forEach(w => { if (w.category) cats.add(w.category); });
+    // 从 localStorage 获取自定义分类
+    try {
+      const stored = localStorage.getItem('customCategories');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((c: string) => cats.add(c));
+        }
+      }
+    } catch { /* ignore */ }
+    return Array.from(cats);
+  };
+
+  const categories = getDynamicCategories();
+
+  const filteredArtworks = activeCategory === '全部'
+    ? artworks
     : artworks.filter((work) => work.category === activeCategory);
 
   return (

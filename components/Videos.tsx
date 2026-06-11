@@ -7,6 +7,7 @@ import { getVideos } from '@/lib/worksService';
 import type { Video } from '@/lib/worksService';
 
 export default function Videos() {
+  const [activeCategory, setActiveCategory] = useState('全部');
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,31 @@ export default function Videos() {
     }
   };
 
+  // 动态获取分类列表：从视频数据 + localStorage 自定义分类
+  const getDynamicCategories = (): string[] => {
+    const cats = new Set<string>();
+    cats.add('全部');
+    // 从已有视频提取分类
+    videos.forEach(v => { if (v.category) cats.add(v.category); });
+    // 从 localStorage 获取自定义分类
+    try {
+      const stored = localStorage.getItem('customCategories');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((c: string) => cats.add(c));
+        }
+      }
+    } catch { /* ignore */ }
+    return Array.from(cats);
+  };
+
+  const categories = getDynamicCategories();
+
+  const filteredVideos = activeCategory === '全部'
+    ? videos
+    : videos.filter((v) => v.category === activeCategory);
+
   return (
     <section id="videos" className="py-20 px-4 bg-secondary/30">
       <div className="max-w-7xl mx-auto">
@@ -53,22 +79,45 @@ export default function Videos() {
           <p className="text-gray-500 max-w-2xl mx-auto">
             记录创作过程，分享AI视频制作技巧与心得
           </p>
-          <motion.a
-            href="/admin"
-            className="inline-flex items-center gap-2 mt-4 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span>+</span> 上传视频
-          </motion.a>
-          <motion.button
-            onClick={fetchVideos}
-            className="inline-flex items-center gap-2 ml-3 mt-4 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ↻ 刷新
-          </motion.button>
+          <div className="flex flex-wrap justify-center gap-3 mt-4">
+            <motion.a
+              href="/admin"
+              className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span>+</span> 上传视频
+            </motion.a>
+            <motion.button
+              onClick={fetchVideos}
+              className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              ↻ 刷新
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* 分类筛选 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="flex flex-wrap justify-center gap-3 mb-10"
+        >
+          {categories.map((category) => (
+            <motion.button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-secondary border border-primary/20'}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {category}
+            </motion.button>
+          ))}
         </motion.div>
 
         {loading ? (
@@ -81,7 +130,7 @@ export default function Videos() {
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos.map((video, index) => (
+            {filteredVideos.map((video, index) => (
               <motion.div
                 key={video.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -119,9 +168,16 @@ export default function Videos() {
                   </div>
                 </div>
                 <div className="p-5">
-                  <h3 className="font-semibold text-lg mb-2 text-gray-800 group-hover:text-primary transition-colors">
-                    {video.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-lg text-gray-800 group-hover:text-primary transition-colors">
+                      {video.title}
+                    </h3>
+                    {video.category && (
+                      <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
+                        {video.category}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-gray-500 text-sm">{video.description}</p>
                 </div>
               </motion.div>
@@ -129,13 +185,13 @@ export default function Videos() {
           </div>
         )}
 
-        {!loading && videos.length === 0 && (
+        {!loading && filteredVideos.length === 0 && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center text-gray-500 mt-12"
           >
-            暂无视频作品，快去上传吧！
+            {activeCategory === '全部' ? '暂无视频作品，快去上传吧！' : `暂无"${activeCategory}"分类的视频作品`}
           </motion.p>
         )}
       </div>
