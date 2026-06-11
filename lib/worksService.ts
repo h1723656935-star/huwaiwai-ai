@@ -23,6 +23,7 @@ export interface Video {
   thumbnail: string;
   url: string;
   videoFile?: string;
+  category?: string;
   created_at?: string;
 }
 
@@ -308,7 +309,8 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
         duration: video.duration,
         thumbnail: thumbnailUrl,
         url: video.url || videoFileUrl,
-        videoFile: videoFileUrl
+        videoFile: videoFileUrl,
+        category: video.category
       }])
       .select()
       .single();

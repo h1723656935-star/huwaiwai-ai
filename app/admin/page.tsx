@@ -21,6 +21,7 @@ interface VideoForm {
   thumbnail: string;
   url: string;
   videoFile: string;
+  category: string;
 }
 
 interface SkillForm {
@@ -46,7 +47,7 @@ interface SocialLinkForm {
   url: string;
 }
 
-const categories = ['二次元', '古风', '少女风', '温暖风格'];
+const defaultCategories = ['二次元', '古风', '少女风', '温暖风格'];
 const iconOptions = ['Mail', 'MessageCircle', 'Video', 'Music', 'BookOpen', 'Github', 'Twitter', 'Instagram', 'Linkedin', 'Youtube'];
 const ADMIN_PASSWORD = 'ai@studio2024';
 
@@ -98,6 +99,7 @@ export default function AdminPage() {
     thumbnail: '',
     url: '',
     videoFile: '',
+    category: '二次元',
   });
   const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -118,6 +120,11 @@ export default function AdminPage() {
   const [socialLinkForm, setSocialLinkForm] = useState<SocialLinkForm>({ name: '', icon: 'Mail', url: '' });
   const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
   
+  // 自定义分类标签
+  const [customCategories, setCustomCategories] = useState<string[]>(defaultCategories);
+  const [newCategory, setNewCategory] = useState('');
+  const [videoCategory, setVideoCategory] = useState('二次元');
+
   // 状态
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -155,6 +162,55 @@ export default function AdminPage() {
       setSiteConfig(config);
     } catch (error) {
       console.error('Failed to load data:', error);
+    }
+  };
+
+  // 加载自定义分类
+  useEffect(() => {
+    const stored = localStorage.getItem('customCategories');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCustomCategories(parsed);
+        }
+      } catch {
+        setCustomCategories(defaultCategories);
+      }
+    }
+  }, []);
+
+  // 保存自定义分类到localStorage
+  useEffect(() => {
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+  }, [customCategories]);
+
+  // 添加自定义分类
+  const handleAddCategory = () => {
+    const trimmed = newCategory.trim();
+    if (!trimmed) {
+      alert('请输入分类名称');
+      return;
+    }
+    if (customCategories.includes(trimmed)) {
+      alert('该分类已存在');
+      return;
+    }
+    setCustomCategories([...customCategories, trimmed]);
+    setNewCategory('');
+  };
+
+  // 删除自定义分类
+  const handleDeleteCategory = (category: string) => {
+    if (!confirm(`确定要删除分类"${category}"吗？`)) return;
+    const filtered = customCategories.filter(c => c !== category);
+    setCustomCategories(filtered);
+    // 如果当前选中的分类被删除，重置为默认第一个
+    if (imageForm.category === category) {
+      setImageForm({ ...imageForm, category: filtered[0] || defaultCategories[0] });
+    }
+    if (videoCategory === category) {
+      setVideoCategory(filtered[0] || defaultCategories[0]);
     }
   };
 
@@ -291,10 +347,11 @@ export default function AdminPage() {
         thumbnail: videoForm.thumbnail,
         url: videoForm.url,
         videoFile: videoForm.videoFile || undefined,
+        category: videoForm.category,
       });
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '' });
+      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
       setVideoThumbnailPreview(null);
       setVideoPreview(null);
       loadAllData();
@@ -636,13 +693,50 @@ export default function AdminPage() {
                       placeholder="作品标题"
                       required
                     />
-                    <select
-                      value={imageForm.category}
-                      onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    >
-                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
+                    <div className="space-y-2">
+                      <select
+                        value={imageForm.category}
+                        onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      >
+                        {customCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                      {/* 分类管理 */}
+                      <div className="border border-primary/20 rounded-xl p-3 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">管理分类标签</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            className="flex-1 px-3 py-2 rounded-lg border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                            placeholder="新分类名称"
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCategory}
+                            className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
+                          >
+                            添加
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {customCategories.map(cat => (
+                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                              {cat}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="hover:bg-primary/20 rounded-full p-0.5"
+                              >
+                                <Icons.X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     <input
                       type="text"
                       value={imageForm.tags}
@@ -698,6 +792,13 @@ export default function AdminPage() {
                       placeholder="视频标题"
                       required
                     />
+                    <select
+                      value={videoForm.category}
+                      onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                    >
+                      {customCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
                     <textarea
                       value={videoForm.description}
                       onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })}

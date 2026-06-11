@@ -26,12 +26,6 @@ export default function Footer() {
             <a href="#videos" className="text-gray-600 hover:text-primary transition-colors">
               AI视频
             </a>
-            <a href="#about" className="text-gray-600 hover:text-primary transition-colors">
-              关于我
-            </a>
-            <a href="#contact" className="text-gray-600 hover:text-primary transition-colors">
-              联系我
-            </a>
           </div>
           <div className="border-t border-primary/20 pt-8">
             <p className="text-gray-500 text-sm">
