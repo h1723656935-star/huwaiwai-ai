@@ -327,9 +327,20 @@ export default function AdminPage() {
       setImageForm({ title: '', category: '二次元', tags: '', date: new Date().toISOString().split('T')[0], image: '' });
       setImagePreview(null);
       loadAllData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('上传失败，请重试');
+      const message = error?.message || String(error);
+      if (message.includes('Bucket not found') || message.includes('bucket') || message.includes('storage')) {
+        alert('上传失败：Supabase 存储桶未配置，请联系管理员检查 media bucket 是否存在。');
+      } else if (message.includes('JWT') || message.includes('token') || message.includes('auth') || message.includes('Unauthorized')) {
+        alert('上传失败：Supabase 密钥无效，请检查环境变量配置。');
+      } else if (message.includes('row-level') || message.includes('permission') || message.includes('policy')) {
+        alert('上传失败：Supabase 权限不足，请检查数据库和存储的 RLS 策略。');
+      } else if (message.includes('network') || message.includes('fetch') || message.includes('Failed to fetch')) {
+        alert('上传失败：网络连接问题，请检查网络后重试。');
+      } else {
+        alert('上传失败：' + message);
+      }
     } finally {
       setUploading(false);
     }
@@ -355,9 +366,20 @@ export default function AdminPage() {
       setVideoThumbnailPreview(null);
       setVideoPreview(null);
       loadAllData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('上传失败，请重试');
+      const message = error?.message || String(error);
+      if (message.includes('Bucket not found') || message.includes('bucket') || message.includes('storage')) {
+        alert('上传失败：Supabase 存储桶未配置，请联系管理员检查 media bucket 是否存在。');
+      } else if (message.includes('JWT') || message.includes('token') || message.includes('auth') || message.includes('Unauthorized')) {
+        alert('上传失败：Supabase 密钥无效，请检查环境变量配置。');
+      } else if (message.includes('row-level') || message.includes('permission') || message.includes('policy')) {
+        alert('上传失败：Supabase 权限不足，请检查数据库和存储的 RLS 策略。');
+      } else if (message.includes('network') || message.includes('fetch') || message.includes('Failed to fetch')) {
+        alert('上传失败：网络连接问题，请检查网络后重试。');
+      } else {
+        alert('上传失败：' + message);
+      }
     } finally {
       setUploading(false);
     }

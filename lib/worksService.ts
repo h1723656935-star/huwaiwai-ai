@@ -141,16 +141,25 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     };
   } catch (error) {
     console.error('Error creating artwork:', error);
-    const newArtwork: Artwork = {
+    // localStorage 配额有限，不存储大的 base64 图片
+    const fallbackArtwork: Artwork = {
       id: Date.now().toString(),
-      ...artwork,
+      title: artwork.title,
+      category: artwork.category,
+      tags: artwork.tags,
+      date: artwork.date,
+      image: artwork.image.startsWith('data:') ? '' : artwork.image,
       created_at: new Date().toISOString(),
     };
-    const stored = localStorage.getItem('userArtworks');
-    const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
-    userArtworks.push(newArtwork);
-    localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
-    return newArtwork;
+    try {
+      const stored = localStorage.getItem('userArtworks');
+      const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
+      userArtworks.push(fallbackArtwork);
+      localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+    } catch (storageError) {
+      console.error('localStorage save failed:', storageError);
+    }
+    throw error;
   }
 }
 
@@ -324,16 +333,28 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
     return data;
   } catch (error) {
     console.error('Error creating video:', error);
-    const newVideo: Video = {
+    // localStorage 配额有限，不存储视频文件本身
+    const fallbackVideo: Video = {
       id: Date.now().toString(),
-      ...video,
+      title: video.title,
+      description: video.description,
+      duration: video.duration,
+      thumbnail: video.thumbnail.startsWith('data:') ? '' : video.thumbnail,
+      url: video.url || '',
+      videoFile: '',
+      category: video.category,
       created_at: new Date().toISOString(),
     };
-    const stored = localStorage.getItem('userVideos');
-    const userVideos: Video[] = stored ? JSON.parse(stored) : [];
-    userVideos.push(newVideo);
-    localStorage.setItem('userVideos', JSON.stringify(userVideos));
-    return newVideo;
+    try {
+      const stored = localStorage.getItem('userVideos');
+      const userVideos: Video[] = stored ? JSON.parse(stored) : [];
+      userVideos.push(fallbackVideo);
+      localStorage.setItem('userVideos', JSON.stringify(userVideos));
+    } catch (storageError) {
+      console.error('localStorage save failed:', storageError);
+    }
+    // 向上抛出原始错误，让前端知道 Supabase 上传失败了
+    throw error;
   }
 }
 
