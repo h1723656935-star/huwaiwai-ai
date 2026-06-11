@@ -251,6 +251,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       const blob = b64toBlob(base64Data, 'image/jpeg');
       const fileName = `thumbnails/${Date.now()}.jpg`;
       
+      console.log('Uploading thumbnail:', fileName);
       const { error: uploadError } = await supabase.storage
         .from('media')
         .upload(fileName, blob, {
@@ -260,7 +261,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       
       if (uploadError) {
         console.error('Error uploading thumbnail:', uploadError);
-        throw uploadError;
+        throw new Error(`上传缩略图失败: ${(uploadError as Error).message}`);
       }
       
       const { data: urlData } = await supabase.storage
@@ -268,6 +269,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
         .getPublicUrl(fileName);
       
       thumbnailUrl = urlData.publicUrl;
+      console.log('Thumbnail uploaded:', thumbnailUrl);
     }
     
     if (video.videoFile && video.videoFile.startsWith('data:')) {
@@ -275,16 +277,18 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       const blob = b64toBlob(base64Data, 'video/mp4');
       const fileName = `videos/${Date.now()}.mp4`;
       
+      console.log('Uploading video file:', fileName);
       const { error: uploadError } = await supabase.storage
         .from('media')
         .upload(fileName, blob, {
           contentType: 'video/mp4',
-          upsert: false
+          upsert: false,
+          cacheControl: '3600'
         });
       
       if (uploadError) {
         console.error('Error uploading video:', uploadError);
-        throw uploadError;
+        throw new Error(`上传视频文件失败: ${(uploadError as Error).message}`);
       }
       
       const { data: urlData } = await supabase.storage
@@ -292,8 +296,10 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
         .getPublicUrl(fileName);
       
       videoFileUrl = urlData.publicUrl;
+      console.log('Video uploaded:', videoFileUrl);
     }
     
+    console.log('Inserting video record...');
     const { data, error } = await supabase
       .from('videos')
       .insert([{
@@ -301,7 +307,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
         description: video.description,
         duration: video.duration,
         thumbnail: thumbnailUrl,
-        url: video.url,
+        url: video.url || videoFileUrl,
         videoFile: videoFileUrl
       }])
       .select()
@@ -309,9 +315,10 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
     
     if (error) {
       console.error('Error creating video:', error);
-      throw error;
+      throw new Error(`创建视频记录失败: ${(error as Error).message}`);
     }
     
+    console.log('Video created successfully:', data);
     return data;
   } catch (error) {
     console.error('Error creating video:', error);

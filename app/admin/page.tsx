@@ -218,6 +218,12 @@ export default function AdminPage() {
         alert('请上传视频文件');
         return;
       }
+      // 检查文件大小（限制为50MB）
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        alert('视频文件太大，请上传小于50MB的视频');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;

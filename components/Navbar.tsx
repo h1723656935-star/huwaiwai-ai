@@ -8,8 +8,6 @@ const navItems = [
   { label: '首页', href: '#home' },
   { label: 'AI绘画', href: '#artworks' },
   { label: 'AI视频', href: '#videos' },
-  { label: '关于我', href: '#about' },
-  { label: '联系我', href: '#contact' },
 ];
 
 export default function Navbar() {
