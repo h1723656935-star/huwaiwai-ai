@@ -313,26 +313,59 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
     }
     
     console.log('Inserting video record...');
-    // 只包含有值的字段，避免数据库缺少字段导致失败
+
+    // 策略1：先尝试完整插入（使用 url 字段存储视频地址，确保兼容旧表也能工作
+    // 视频文件URL放到 url 字段（这是表中一定有的字段）
+    const primaryVideoUrl = videoFileUrl || video.url || '';
+    
     const videoInsert: Record<string, any> = {
       title: video.title,
-      thumbnail: thumbnailUrl
+      thumbnail: thumbnailUrl,
+      url: primaryVideoUrl
     };
     if (video.description && video.description.trim()) videoInsert.description = video.description;
     if (video.duration) videoInsert.duration = video.duration;
-    if (video.url && video.url.trim()) videoInsert.url = video.url;
     if (videoFileUrl) videoInsert.videoFile = videoFileUrl;
     if (video.category && video.category.trim()) videoInsert.category = video.category;
 
-    const { data, error } = await supabase
+    let data: any = null;
+    let insertError: any = null;
+
+    // 第一次尝试：完整字段插入
+    try {
+      const result = await supabase
       .from('videos')
       .insert([videoInsert])
       .select()
       .single();
-    
-    if (error) {
-      console.error('Error creating video:', error);
-      throw new Error(`创建视频记录失败: ${(error as Error).message}`);
+    data = result.data;
+    insertError = result.error;
+    } catch (e) {
+    insertError = e;
+    }
+
+    // 如果第一次失败，尝试降级插入（只包含肯定存在的字段）
+    if (insertError) {
+      console.log('Full insert failed, trying minimal insert:', insertError);
+      const minimalInsert: Record<string, any> = {
+        title: video.title,
+        thumbnail: thumbnailUrl,
+        url: primaryVideoUrl
+      };
+      if (video.description && video.description.trim()) minimalInsert.description = video.description;
+      if (video.duration) minimalInsert.duration = video.duration;
+
+      const { data: minimalData, error: minimalError } = await supabase
+        .from('videos')
+        .insert([minimalInsert])
+        .select()
+        .single();
+
+      if (minimalError) {
+        console.error('Error creating video (minimal):', minimalError);
+        throw new Error(`创建视频记录失败: ${(minimalError as Error).message}`);
+      }
+      data = minimalData;
     }
     
     console.log('Video created successfully:', data);
