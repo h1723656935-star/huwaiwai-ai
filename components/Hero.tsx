@@ -24,7 +24,7 @@ export default function Hero() {
 
   if (!config) {
     return (
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg bg-grid">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -37,7 +37,7 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg bg-grid"
     >
       <SparklesBackground />
 
@@ -51,9 +51,9 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-primary font-medium mb-4 text-lg"
+            className="text-primary-light font-medium mb-4 text-lg tracking-wider"
           >
-            Welcome to
+            欢迎来到
           </motion.p>
 
           <motion.h1
@@ -62,14 +62,14 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4"
           >
-            <span className="gradient-text">{config.heroTitle}</span>
+            <span className="text-gradient-moli">{config.heroTitle}</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl sm:text-2xl text-gray-600 mb-6"
+            className="text-xl sm:text-2xl text-foreground-muted mb-6"
           >
             {config.heroSubtitle}
           </motion.p>
@@ -78,7 +78,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="text-gray-500 mb-8 max-w-xl mx-auto"
+            className="text-foreground-subtle mb-8 max-w-xl mx-auto"
           >
             <p className="text-lg">{config.heroDescription}</p>
           </motion.div>
@@ -91,7 +91,7 @@ export default function Hero() {
           >
             <motion.a
               href="#artworks"
-              className="gradient-btn text-white px-8 py-3 rounded-full font-medium text-lg shadow-lg"
+              className="gradient-btn px-8 py-3 rounded-full font-medium text-lg shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -99,7 +99,7 @@ export default function Hero() {
             </motion.a>
             <motion.a
               href="#contact"
-              className="border-2 border-primary text-primary px-8 py-3 rounded-full font-medium text-lg hover:bg-primary hover:text-white transition-all duration-300"
+              className="border-2 border-primary/60 text-primary-light px-8 py-3 rounded-full font-medium text-lg hover:bg-primary/10 hover:border-primary transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -114,9 +114,9 @@ export default function Hero() {
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <div className="w-6 h-10 border-2 border-primary/50 rounded-full flex justify-center pt-2">
+        <div className="w-6 h-10 border-2 border-primary/40 rounded-full flex justify-center pt-2">
           <motion.div
-            className="w-1.5 h-3 bg-primary rounded-full"
+            className="w-1.5 h-3 bg-primary-light rounded-full"
             animate={{ y: [0, 6, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
           />

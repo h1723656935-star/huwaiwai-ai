@@ -20,18 +20,15 @@ export default function Artworks() {
     try {
       const dbArtworks = await getArtworks();
       
-      // 从 localStorage 获取用户上传的作品（作为后备）
       const stored = localStorage.getItem('userArtworks');
       const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
       
-      // 合并作品，按 id 去重，数据库优先
       const artworkMap = new Map<string, Artwork>();
       localArtworks.forEach(a => artworkMap.set(a.id, a));
       dbArtworks.forEach(a => artworkMap.set(a.id, a));
       setArtworks(Array.from(artworkMap.values()));
     } catch (error) {
       console.error('Failed to fetch artworks:', error);
-      // 回退到 localStorage
       const stored = localStorage.getItem('userArtworks');
       setArtworks(stored ? JSON.parse(stored) : []);
     } finally {
@@ -39,13 +36,10 @@ export default function Artworks() {
     }
   };
 
-  // 动态获取分类列表：从作品数据 + localStorage 自定义图片分类
   const getDynamicCategories = (): string[] => {
     const cats = new Set<string>();
     cats.add('全部');
-    // 从已有作品提取分类
     artworks.forEach(w => { if (w.category) cats.add(w.category); });
-    // 从 localStorage 获取自定义图片分类
     try {
       const stored = localStorage.getItem('imageCategories');
       if (stored) {
@@ -74,15 +68,15 @@ export default function Artworks() {
           transition={{ duration: 0.6 }} 
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">AI绘画作品</h2>
-          <p className="text-gray-500 max-w-2xl mx-auto">探索二次元美学与梦幻表达，每一幅作品都承载着独特的创作灵感</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gradient-moli mb-4">AI绘画作品</h2>
+          <p className="text-foreground-subtle max-w-2xl mx-auto">探索二次元美学与梦幻表达，每一幅作品都承载着独特的创作灵感</p>
           <div className="flex flex-wrap justify-center gap-3 mt-4">
-            <motion.a href="/admin" className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.a href="/admin" className="inline-flex items-center gap-2 px-6 py-2 glass border border-primary/30 rounded-full text-primary-light hover:bg-primary hover:text-white transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <span>+</span> 上传作品
             </motion.a>
             <motion.button 
               onClick={fetchArtworks}
-              className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300" 
+              className="inline-flex items-center gap-2 px-6 py-2 glass border border-primary/30 rounded-full text-primary-light hover:bg-primary hover:text-white transition-all duration-300" 
               whileHover={{ scale: 1.05 }} 
               whileTap={{ scale: 0.95 }}
             >
@@ -102,7 +96,7 @@ export default function Artworks() {
             <motion.button 
               key={category} 
               onClick={() => setActiveCategory(category)} 
-              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-secondary border border-primary/20'}`}
+              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn text-white shadow-lg' : 'glass border border-border text-foreground-muted hover:border-primary/50 hover:text-primary-light'}`}
               whileHover={{ scale: 1.05 }} 
               whileTap={{ scale: 0.95 }}
             >
@@ -128,27 +122,20 @@ export default function Artworks() {
                 whileInView={{ opacity: 1, y: 0 }} 
                 viewport={{ once: true }} 
                 transition={{ duration: 0.5 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-glow transition-all duration-500 cursor-pointer"
+                className="card-moli overflow-hidden cursor-pointer hover-lift"
                 onClick={() => setSelectedImage(work.image)}
               >
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  {work.image.startsWith('data:') ? (
-                    <img 
-                      src={work.image} 
-                      alt={work.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img 
-                      src={work.image} 
-                      alt={work.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  <img 
+                    src={work.image} 
+                    alt={work.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background-card/80 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-lg text-gray-800">{work.title}</h3>
-                  <p className="text-gray-500 text-sm mt-1">{work.category}</p>
+                  <h3 className="font-semibold text-lg text-foreground">{work.title}</h3>
+                  <p className="text-foreground-subtle text-sm mt-1">{work.category}</p>
                 </div>
               </motion.div>
             ))}
@@ -156,7 +143,7 @@ export default function Artworks() {
         )}
 
         {!loading && artworks.length === 0 && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-gray-500 mt-12">
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-foreground-subtle mt-12">
             暂无作品，快去上传吧！
           </motion.p>
         )}
@@ -168,7 +155,7 @@ export default function Artworks() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div 
@@ -178,19 +165,11 @@ export default function Artworks() {
               onClick={(e) => e.stopPropagation()}
               className="relative max-w-4xl max-h-[80vh]"
             >
-              {selectedImage.startsWith('data:') ? (
-                <img 
-                  src={selectedImage} 
-                  alt="Preview" 
-                  className="rounded-2xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-                />
-              ) : (
-                <img 
-                  src={selectedImage} 
-                  alt="Preview" 
-                  className="rounded-2xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-                />
-              )}
+              <img 
+                src={selectedImage} 
+                alt="Preview" 
+                className="rounded-2xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+              />
             </motion.div>
           </motion.div>
         )}

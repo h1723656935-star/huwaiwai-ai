@@ -645,56 +645,56 @@ export default function AdminPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4">
+      <div className="min-h-screen bg-background bg-grid flex items-center justify-center py-12 px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl shadow-lg p-8 w-full max-w-md"
+          className="glass rounded-3xl p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="w-16 h-16 bg-gradient-to-br from-primary to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4"
+              className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4"
             >
               <Icons.Lock className="w-8 h-8 text-white" />
             </motion.div>
-            <h1 className="text-2xl font-bold gradient-text">作品管理</h1>
-            <p className="text-gray-500 mt-2">请输入管理员密码</p>
+            <h1 className="text-2xl font-bold text-gradient-moli">墨璃 - 管理后台</h1>
+            <p className="text-foreground-subtle mt-2">请输入管理员密码</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
+              <label className="block text-sm font-medium text-foreground-muted mb-2">密码</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground placeholder:text-foreground-dim"
                   placeholder="请输入密码"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary-light"
                 >
                   {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {loginError && <p className="text-red-500 text-sm mt-2">{loginError}</p>}
+              {loginError && <p className="text-red-400 text-sm mt-2">{loginError}</p>}
             </div>
             <motion.button
               type="submit"
-              className="w-full gradient-btn text-white py-4 rounded-xl font-medium text-lg shadow-lg"
+              className="w-full gradient-btn py-4 rounded-xl font-medium text-lg shadow-lg"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               登录
             </motion.button>
           </form>
-          <p className="text-center text-sm text-gray-400 mt-6">密码：ai@studio2024</p>
+          <p className="text-center text-sm text-foreground-dim mt-6">密码：ai@studio2024</p>
         </motion.div>
       </div>
     );
@@ -702,11 +702,11 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <div className="glass border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold gradient-text">胡歪歪 AI Studio - 管理后台</h1>
+              <h1 className="text-xl font-bold text-gradient-moli">墨璃 · MOLI - 管理后台</h1>
               <nav className="flex gap-2">
                 {[
                   { key: 'works', label: '作品管理', icon: Icons.Image },
@@ -720,7 +720,7 @@ export default function AdminPage() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                       mainTab === tab.key
                         ? 'gradient-btn text-white'
-                        : 'hover:bg-gray-100 text-gray-600'
+                        : 'hover:bg-background-card text-foreground-muted hover:text-primary-light'
                     }`}
                   >
                     <tab.icon className="w-4 h-4" />
@@ -790,7 +790,7 @@ export default function AdminPage() {
                       type="text"
                       value={imageForm.title}
                       onChange={(e) => setImageForm({ ...imageForm, title: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="作品标题"
                       required
                     />
@@ -798,33 +798,33 @@ export default function AdminPage() {
                       <select
                         value={imageForm.category}
                         onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground"
                       >
                         {imageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                       </select>
                       {/* 分类管理 */}
-                      <div className="border border-primary/20 rounded-xl p-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">管理图片分类标签</p>
+                      <div className="border border-border rounded-xl p-3 space-y-2">
+                        <p className="text-sm font-medium text-foreground-muted">管理图片分类标签</p>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             value={newImageCategory}
                             onChange={(e) => setNewImageCategory(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                            className="flex-1 px-3 py-2 rounded-lg bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm text-foreground placeholder:text-foreground-dim"
                             placeholder="新分类名称"
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageCategory(); } }}
                           />
                           <button
                             type="button"
                             onClick={handleAddImageCategory}
-                            className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
+                            className="px-3 py-2 gradient-btn text-white rounded-lg text-sm"
                           >
                             添加
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {imageCategories.map(cat => (
-                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary-light rounded-full text-xs">
                               {cat}
                               <button
                                 type="button"
@@ -842,22 +842,22 @@ export default function AdminPage() {
                       type="text"
                       value={imageForm.tags}
                       onChange={(e) => setImageForm({ ...imageForm, tags: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="标签（逗号分隔）"
                     />
                     <input
                       type="date"
                       value={imageForm.date}
                       onChange={(e) => setImageForm({ ...imageForm, date: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground"
                     />
                     <div
-                      className="w-full border-2 border-dashed border-primary/20 rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
+                      className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
                       onClick={() => document.getElementById('image-upload')?.click()}
                     >
                       <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                       <Icons.Upload className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">上传图片</p>
+                      <p className="text-sm text-foreground-muted">上传图片</p>
                     </div>
                     {imagePreview && (
                       <div className="relative rounded-xl overflow-hidden">
@@ -865,7 +865,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => { setImageForm({ ...imageForm, image: '' }); setImagePreview(null); }}
-                          className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white"
+                          className="absolute top-2 right-2 w-8 h-8 glass rounded-full flex items-center justify-center text-foreground"
                         >
                           <Icons.X className="w-4 h-4" />
                         </button>
@@ -874,7 +874,7 @@ export default function AdminPage() {
                     <motion.button
                       type="submit"
                       disabled={!imageForm.image || uploading}
-                      className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
+                      className="w-full gradient-btn py-3 rounded-xl font-medium"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -923,7 +923,7 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {videoCategories.map(cat => (
-                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary-light rounded-full text-xs">
                               {cat}
                               <button
                                 type="button"
@@ -940,7 +940,7 @@ export default function AdminPage() {
                     <textarea
                       value={videoForm.description}
                       onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim resize-none"
                       placeholder="视频描述"
                       rows={2}
                     />
@@ -948,16 +948,16 @@ export default function AdminPage() {
                       type="text"
                       value={videoForm.duration}
                       onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="时长"
                     />
                     <div
-                      className="w-full border-2 border-dashed border-primary/20 rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
+                      className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
                       onClick={() => document.getElementById('video-file-upload')?.click()}
                     >
                       <input id="video-file-upload" type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
                       <Icons.Video className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">上传视频文件</p>
+                      <p className="text-sm text-foreground-muted">上传视频文件</p>
                     </div>
                     {videoPreview && (
                       <div className="relative rounded-xl overflow-hidden">
@@ -965,7 +965,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => { setVideoForm({ ...videoForm, videoFile: '', thumbnail: '' }); setVideoPreview(null); setVideoThumbnailPreview(null); }}
-                          className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white"
+                          className="absolute top-2 right-2 w-8 h-8 glass rounded-full flex items-center justify-center text-foreground"
                         >
                           <Icons.X className="w-4 h-4" />
                         </button>
@@ -975,13 +975,13 @@ export default function AdminPage() {
                       type="url"
                       value={videoForm.url}
                       onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="YouTube链接（可选）"
                     />
                     <motion.button
                       type="submit"
                       disabled={(!videoForm.thumbnail || (!videoForm.videoFile && !videoForm.url)) || uploading}
-                      className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
+                      className="w-full gradient-btn py-3 rounded-xl font-medium"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -997,16 +997,16 @@ export default function AdminPage() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-3xl shadow-lg p-6"
+                className="card-moli p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">
+                  <h3 className="text-lg font-bold text-foreground">
                     {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : `视频作品 (${userVideos.length})`}
                   </h3>
                   <button
                     type="button"
                     onClick={() => handleClearAllWorks(worksTab)}
-                    className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/20 transition-colors flex items-center gap-1"
                   >
                     <Icons.Trash2 className="w-3.5 h-3.5" />
                     清空所有
@@ -1014,7 +1014,7 @@ export default function AdminPage() {
                 </div>
                 {worksTab === 'image' ? (
                   userArtworks.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">暂无图片作品</p>
+                    <p className="text-center text-foreground-subtle py-8">暂无图片作品</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       {userArtworks.map(artwork => (

@@ -21,18 +21,15 @@ export default function Videos() {
     try {
       const dbVideos = await getVideos();
       
-      // 从 localStorage 获取用户上传的视频（作为后备）
       const stored = localStorage.getItem('userVideos');
       const localVideos: Video[] = stored ? JSON.parse(stored) : [];
       
-      // 合并视频，按 id 去重，数据库优先
       const videoMap = new Map<string, Video>();
       localVideos.forEach(v => videoMap.set(v.id, v));
       dbVideos.forEach(v => videoMap.set(v.id, v));
       setVideos(Array.from(videoMap.values()));
     } catch (error) {
       console.error('Failed to fetch videos:', error);
-      // 回退到 localStorage
       const stored = localStorage.getItem('userVideos');
       setVideos(stored ? JSON.parse(stored) : []);
     } finally {
@@ -40,13 +37,10 @@ export default function Videos() {
     }
   };
 
-  // 动态获取分类列表：从视频数据 + localStorage 自定义视频分类
   const getDynamicCategories = (): string[] => {
     const cats = new Set<string>();
     cats.add('全部');
-    // 从已有视频提取分类
     videos.forEach(v => { if (v.category) cats.add(v.category); });
-    // 从 localStorage 获取自定义视频分类
     try {
       const stored = localStorage.getItem('videoCategories');
       if (stored) {
@@ -66,7 +60,7 @@ export default function Videos() {
     : videos.filter((v) => v.category === activeCategory);
 
   return (
-    <section id="videos" className="py-20 px-4 bg-secondary/30">
+    <section id="videos" className="py-20 px-4 bg-background-light">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -75,16 +69,16 @@ export default function Videos() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gradient-moli mb-4">
             AI视频作品
           </h2>
-          <p className="text-gray-500 max-w-2xl mx-auto">
+          <p className="text-foreground-subtle max-w-2xl mx-auto">
             记录创作过程，分享AI视频制作技巧与心得
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-4">
             <motion.a
               href="/admin"
-              className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-2 glass border border-primary/30 rounded-full text-primary-light hover:bg-primary hover:text-white transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -92,7 +86,7 @@ export default function Videos() {
             </motion.a>
             <motion.button
               onClick={fetchVideos}
-              className="inline-flex items-center gap-2 px-6 py-2 bg-white border border-primary/30 rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-2 glass border border-primary/30 rounded-full text-primary-light hover:bg-primary hover:text-white transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -101,7 +95,6 @@ export default function Videos() {
           </div>
         </motion.div>
 
-        {/* 分类筛选 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -113,7 +106,7 @@ export default function Videos() {
             <motion.button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-secondary border border-primary/20'}`}
+              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn text-white shadow-lg' : 'glass border border-border text-foreground-muted hover:border-primary/50 hover:text-primary-light'}`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -139,7 +132,7 @@ export default function Videos() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-glow transition-all duration-500 cursor-pointer"
+                className="card-moli overflow-hidden cursor-pointer hover-lift"
                 onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
               >
                 <div className="relative aspect-video overflow-hidden">
@@ -149,41 +142,46 @@ export default function Videos() {
                       alt={video.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       onError={(e) => {
-                        // 图片加载失败时显示占位符
-                        (e.target as HTMLImageElement).style.display = 'none';
-                        (e.target as HTMLImageElement).parentElement?.classList.add('bg-gradient-to-br', 'from-pink-200', 'to-purple-300');
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.style.background = 'linear-gradient(135deg, rgba(94,61,138,0.8) 0%, rgba(167,139,217,0.4) 100%)';
+                        }
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-pink-200 to-purple-300 flex items-center justify-center">
-                      <VideoIcon className="w-16 h-16 text-white/60" />
+                    <div className="w-full h-full bg-gradient-to-br from-secondary-dark to-primary-dark flex items-center justify-center">
+                      <VideoIcon className="w-16 h-16 text-primary-light/60" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
                     <motion.div
-                      className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg"
+                      className="w-14 h-14 rounded-full glass flex items-center justify-center shadow-lg"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                      <Play className="w-7 h-7 text-primary-light ml-1" fill="currentColor" />
                     </motion.div>
                   </div>
-                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 rounded-full text-white text-sm">
-                    {video.duration}
-                  </div>
+                  {video.duration && (
+                    <div className="absolute bottom-3 right-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full text-foreground-muted text-sm">
+                      {video.duration}
+                    </div>
+                  )}
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg text-gray-800 group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-lg text-foreground group-hover:text-primary-light transition-colors">
                       {video.title}
                     </h3>
                     {video.category && (
-                      <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
+                      <span className="px-2 py-0.5 bg-primary/10 text-primary-light rounded-full text-xs">
                         {video.category}
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-500 text-sm">{video.description}</p>
+                  <p className="text-foreground-subtle text-sm">{video.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -194,7 +192,7 @@ export default function Videos() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-gray-500 mt-12"
+            className="text-center text-foreground-subtle mt-12"
           >
             {activeCategory === '全部' ? '暂无视频作品，快去上传吧！' : `暂无"${activeCategory}"分类的视频作品`}
           </motion.p>
@@ -207,7 +205,7 @@ export default function Videos() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setSelectedVideo(null)}
           >
             <motion.div
@@ -215,13 +213,13 @@ export default function Videos() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden"
+              className="relative w-full max-w-5xl aspect-video bg-background-card rounded-2xl overflow-hidden border border-border"
             >
               <button
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full glass flex items-center justify-center transition-colors hover:bg-primary/20"
                 onClick={() => setSelectedVideo(null)}
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-6 h-6 text-foreground-muted" />
               </button>
               {selectedVideo.startsWith('data:') ? (
                 <video

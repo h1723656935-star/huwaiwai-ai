@@ -28,17 +28,17 @@ export default function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'glass-dark shadow-md' : 'bg-transparent'
+        isScrolled ? 'glass shadow-lg' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           <motion.a
             href="#home"
-            className="text-2xl font-bold gradient-text"
+            className="text-2xl font-bold text-gradient-moli"
             whileHover={{ scale: 1.05 }}
           >
-            HUWAIWAI
+            墨璃 · MOLI
           </motion.a>
 
           <div className="hidden md:flex items-center space-x-8">
@@ -46,7 +46,7 @@ export default function Navbar() {
               <motion.a
                 key={item.label}
                 href={item.href}
-                className="text-gray-700 hover:text-primary transition-colors duration-300 font-medium"
+                className="text-foreground-muted hover:text-primary-light transition-colors duration-300 font-medium"
                 whileHover={{ y: -2 }}
               >
                 {item.label}
@@ -55,13 +55,13 @@ export default function Navbar() {
           </div>
 
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 text-foreground-muted hover:text-primary-light transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-gray-700" />
+              <X className="w-6 h-6" />
             ) : (
-              <Menu className="w-6 h-6 text-gray-700" />
+              <Menu className="w-6 h-6" />
             )}
           </button>
         </div>
@@ -73,14 +73,14 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden glass-dark border-t border-primary/20"
+            className="md:hidden glass border-t border-border"
           >
             <div className="px-4 py-4 space-y-4">
               {navItems.map((item) => (
                 <motion.a
                   key={item.label}
                   href={item.href}
-                  className="block text-gray-700 hover:text-primary transition-colors duration-300 font-medium"
+                  className="block text-foreground-muted hover:text-primary-light transition-colors duration-300 font-medium"
                   onClick={() => setIsMobileMenuOpen(false)}
                   whileHover={{ x: 10 }}
                 >

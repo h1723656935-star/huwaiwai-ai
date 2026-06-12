@@ -4,20 +4,46 @@
 
 @layer base {
   :root {
-    --background: #FFF8FB;
-    --foreground: #374151;
-    --card: #FFFFFF;
-    --card-foreground: #374151;
-    --primary: #FF9CCE;
-    --primary-foreground: #FFFFFF;
-    --secondary: #FFE4F0;
-    --secondary-foreground: #374151;
-    --accent: #FFB6C1;
-    --accent-foreground: #FFFFFF;
-    --muted: #F9FAFB;
-    --muted-foreground: #6B7280;
-    --border: #FFE4F0;
-    --input: #FFE4F0;
+    /* ====== 墨璃配色方案 ====== */
+    /* 背景色系 - 深紫渐变 */
+    --background: #0A0812;
+    --background-light: #120F1F;
+    --background-card: #1A1628;
+    --background-card-hover: #221D35;
+    
+    /* 文字色系 - 银白渐变 */
+    --foreground: #E8DEED;
+    --foreground-muted: #C9B3E0;
+    --foreground-subtle: #8B7FB0;
+    --foreground-dim: #5E3D8A;
+    
+    /* 主色调 - 紫水晶色系 */
+    --primary: #A78BD9;
+    --primary-light: #C9B3E0;
+    --primary-dark: #7A5BAB;
+    --primary-glow: rgba(167, 139, 217, 0.4);
+    
+    /* 次要色 - 深紫 */
+    --secondary: #5E3D8A;
+    --secondary-light: #7A5BAB;
+    --secondary-dark: #3D2A5C;
+    
+    /* 强调色 - 金色 */
+    --accent: #D4AF7A;
+    --accent-light: #E8C896;
+    --accent-dark: #B8954A;
+    --accent-glow: rgba(212, 175, 122, 0.4);
+    
+    /* 边框与分割 */
+    --border: rgba(122, 91, 171, 0.3);
+    --border-light: rgba(167, 139, 217, 0.2);
+    --divider: rgba(212, 175, 122, 0.2);
+    
+    /* 交互状态 */
+    --hover: rgba(167, 139, 217, 0.15);
+    --active: rgba(167, 139, 217, 0.3);
+    
+    /* 圆角 */
     --radius: 0.5rem;
   }
 
@@ -28,13 +54,33 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background-light);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--secondary);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
   }
 }
 
+/* ====== 动画关键帧 ====== */
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -47,8 +93,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 156, 206, 0.4); }
-  50% { box-shadow: 0 0 40px rgba(255, 156, 206, 0.7); }
+  0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
+  50% { box-shadow: 0 0 40px var(--primary-glow), 0 0 60px var(--accent-glow); }
 }
 
 @keyframes shimmer {
@@ -94,21 +140,32 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes borderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ====== 工具类 ====== */
 @layer utilities {
+  /* 玻璃态效果 */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(26, 22, 40, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
   }
 
-  .glass-dark {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+  .glass-light {
+    background: rgba(34, 29, 53, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-light);
   }
 
+  /* 渐变文字 */
   .gradient-text {
-    background: linear-gradient(135deg, #FF9CCE 0%, #FFB6C1 50%, #FFD1DC 100%);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 50%, var(--accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -117,11 +174,11 @@
   .gradient-text-animate {
     background: linear-gradient(
       135deg,
-      #FF9CCE 0%,
-      #FFB6C1 25%,
-      #FFD1DC 50%,
-      #FFB6C1 75%,
-      #FF9CCE 100%
+      var(--primary-light) 0%,
+      var(--primary) 25%,
+      var(--accent) 50%,
+      var(--primary) 75%,
+      var(--primary-light) 100%
     );
     background-size: 200% 200%;
     -webkit-background-clip: text;
@@ -130,20 +187,90 @@
     animation: gradientShift 4s ease infinite;
   }
 
+  /* 渐变背景 */
   .gradient-bg {
-    background: linear-gradient(135deg, #FFF8FB 0%, #FFE4F0 50%, #FFD1DC 100%);
+    background: linear-gradient(135deg, var(--background) 0%, var(--background-light) 50%, var(--background-card) 100%);
   }
 
+  .gradient-bg-header {
+    background: linear-gradient(180deg, var(--background-light) 0%, transparent 100%);
+  }
+
+  /* 渐变按钮 */
   .gradient-btn {
-    background: linear-gradient(135deg, #FF9CCE 0%, #FFB6C1 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--foreground);
     transition: all 0.3s ease;
+    border: none;
+    font-weight: 500;
   }
 
   .gradient-btn:hover {
-    background: linear-gradient(135deg, #FFB6C1 0%, #FF9CCE 100%);
-    box-shadow: 0 0 20px rgba(255, 156, 206, 0.5);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+    box-shadow: 0 0 25px var(--primary-glow);
+    transform: translateY(-2px);
   }
 
+  .gradient-btn:active {
+    transform: translateY(0);
+  }
+
+  /* 金色按钮 */
+  .gold-btn {
+    background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+    color: var(--background);
+    transition: all 0.3s ease;
+    border: none;
+    font-weight: 600;
+  }
+
+  .gold-btn:hover {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateY(-2px);
+  }
+
+  /* 边框发光效果 */
+  .border-glow {
+    position: relative;
+    border: 1px solid var(--border);
+  }
+
+  .border-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, var(--primary), var(--accent), var(--primary)) border-box;
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .border-glow:hover::before {
+    opacity: 0.5;
+  }
+
+  /* 流光边框 */
+  .border-flow {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid transparent;
+    background: linear-gradient(var(--background-card), var(--background-card)) padding-box,
+                linear-gradient(135deg, var(--primary), var(--accent), var(--primary)) border-box;
+  }
+
+  /* 悬停上浮效果 */
+  .hover-lift {
+    transition: all 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(94, 61, 138, 0.3);
+  }
+
+  /* 星光效果 */
   .sparkle {
     position: relative;
   }
@@ -155,15 +282,17 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255, 182, 193, 0.3) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
   }
 
   .sparkle:hover::before {
     opacity: 1;
   }
 
+  /* 动画工具类 */
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
@@ -176,7 +305,7 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 156, 206, 0.4) 50%,
+      var(--primary-glow) 50%,
       transparent 100%
     );
     background-size: 200% 100%;
@@ -185,5 +314,39 @@
 
   .animate-rotate-slow {
     animation: rotateSlow 20s linear infinite;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  /* 文本样式 */
+  .text-gradient-moli {
+    background: linear-gradient(135deg, #E8DEED 0%, #C9B3E0 35%, #A78BD9 65%, #D4AF7A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 卡片样式 */
+  .card-moli {
+    background: var(--background-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+  }
+
+  .card-moli:hover {
+    background: var(--background-card-hover);
+    border-color: var(--primary-dark);
+    box-shadow: 0 8px 30px rgba(94, 61, 138, 0.2);
+  }
+
+  /* 背景网格 */
+  .bg-grid {
+    background-image: 
+      linear-gradient(rgba(122, 91, 171, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(122, 91, 171, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
   }
 }
