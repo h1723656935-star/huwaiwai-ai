@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import SparklesBackground from './SparklesBackground';
-import AssistantCharacter from './AssistantCharacter';
 import * as worksService from '@/lib/worksService';
 import type { SiteConfig } from '@/lib/worksService';
 
@@ -109,8 +108,6 @@ export default function Hero() {
           </motion.div>
         </motion.div>
       </div>
-
-      <AssistantCharacter />
 
       <motion.div
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
