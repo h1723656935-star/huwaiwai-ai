@@ -122,9 +122,11 @@
     background: var(--secondary);
   }
 
-  /* 隐藏系统光标（仅PC端有自定义光标时） */
+  /* 隐藏系统光标（仅在带 custom-cursor 容器的页面生效，如首页） */
   @media (hover: hover) and (pointer: fine) {
-    *, *::before, *::after {
+    .custom-cursor-active *,
+    .custom-cursor-active *::before,
+    .custom-cursor-active *::after {
       cursor: none !important;
     }
   }

@@ -48,9 +48,9 @@ export default function App() {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`min-h-screen bg-background overflow-x-hidden ${isLoaded ? 'cursor-none' : ''}`}
+      className={`min-h-screen bg-background overflow-x-hidden custom-cursor-active`}
     >
       {isLoaded && <CustomCursor />}
       
