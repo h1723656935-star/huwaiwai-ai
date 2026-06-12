@@ -1,9 +1,129 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getArtworks } from '@/lib/worksService';
 import type { Artwork } from '@/lib/worksService';
+
+interface CardProps {
+  work: Artwork;
+  index: number;
+  onClick: () => void;
+}
+
+function ArtworkCard({ work, index, onClick }: CardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, translateY: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const rotateX = (e.clientY - centerY) / 30;
+      const rotateY = (centerX - e.clientX) / 30;
+      setTransform({
+        rotateX: Math.max(-15, Math.min(15, rotateX)),
+        rotateY: Math.max(-15, Math.min(15, rotateY)),
+        translateY: -8,
+      });
+    };
+
+    const handleMouseLeave = () => {
+      setTransform({ rotateX: 0, rotateY: 0, translateY: 0 });
+    };
+
+    const card = cardRef.current;
+    if (card) {
+      card.addEventListener('mousemove', handleMouseMove);
+      card.addEventListener('mouseleave', handleMouseLeave);
+      return () => {
+        card.removeEventListener('mousemove', handleMouseMove);
+        card.removeEventListener('mouseleave', handleMouseLeave);
+      };
+    }
+  }, []);
+
+  return (
+    <motion.div
+      ref={cardRef}
+      key={work.id}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="card-moli overflow-hidden cursor-pointer"
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      animate={{
+        rotateX: transform.rotateX,
+        rotateY: transform.rotateY,
+        y: transform.translateY,
+      }}
+      transition={{
+        type: 'spring',
+        stiffness: 200,
+        damping: 20,
+        mass: 0.8,
+      }}
+      style={{
+        transformStyle: 'preserve-3d',
+      }}
+    >
+      <div 
+        className="relative aspect-[4/5] overflow-hidden"
+        style={{ transform: 'translateZ(20px)' }}
+      >
+        <motion.img
+          src={work.image}
+          alt={work.title}
+          className="w-full h-full object-cover"
+          animate={{ scale: isHovered ? 1.1 : 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        />
+        
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-t from-dark/80 via-dark/20 to-transparent"
+          animate={{ opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
+        />
+
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center"
+          animate={{ opacity: isHovered ? 0.8 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="px-4 py-2 rounded-full glass">
+            <span className="text-sm font-medium text-foreground">查看大图</span>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="p-5" style={{ transform: 'translateZ(10px)' }}>
+        <motion.h3
+          className="font-semibold text-lg text-foreground truncate"
+          animate={{ x: isHovered ? 4 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {work.title}
+        </motion.h3>
+        {work.category && (
+          <motion.div
+            className="flex items-center gap-2 mt-2"
+            animate={{ x: isHovered ? 4 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <span className="px-2.5 py-1 bg-primary/15 text-secondary rounded-full text-xs font-medium">
+              {work.category}
+            </span>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Artworks() {
   const [activeCategory, setActiveCategory] = useState('全部');
@@ -59,35 +179,40 @@ export default function Artworks() {
   return (
     <section id="artworks" className="py-24 px-4 gradient-bg-dark">
       <div className="max-w-7xl mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          whileInView={{ opacity: 1, y: 0 }} 
-          viewport={{ once: true }} 
-          transition={{ duration: 0.6 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-16"
         >
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-secondary font-medium mb-4 text-lg"
+            className="text-secondary font-medium mb-4 text-lg tracking-wider"
           >
             AI Art Gallery
           </motion.p>
-          <h2 className="text-3xl md:text-4xl font-bold text-gradient-title mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gradient-title mb-4">
             AI绘画作品
           </h2>
           <p className="text-foreground-subtle max-w-2xl mx-auto text-lg">
             探索二次元美学与梦幻表达，每一幅作品都承载着独特的创作灵感
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-6">
-            <motion.a href="/admin" className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <div className="flex flex-wrap justify-center gap-3 mt-8">
+            <motion.a
+              href="/admin"
+              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
               <span>+</span> 上传作品
             </motion.a>
-            <motion.button 
+            <motion.button
               onClick={fetchArtworks}
-              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized" 
-              whileHover={{ scale: 1.02 }} 
+              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300"
+              whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
               ↻ 刷新
@@ -95,20 +220,28 @@ export default function Artworks() {
           </div>
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          whileInView={{ opacity: 1, y: 0 }} 
-          viewport={{ once: true }} 
-          transition={{ duration: 0.6, delay: 0.1 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.15 }}
           className="flex flex-wrap justify-center gap-3 mb-12"
         >
-          {categories.map((category) => (
-            <motion.button 
-              key={category} 
-              onClick={() => setActiveCategory(category)} 
-              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 mobile-optimized ${activeCategory === category ? 'gradient-btn shadow-lg' : 'card-moli text-foreground-muted hover:text-foreground hover:border-primary'}`}
-              whileHover={{ scale: 1.02 }} 
-              whileTap={{ scale: 0.98 }}
+          {categories.map((category, index) => (
+            <motion.button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
+                activeCategory === category
+                  ? 'gradient-btn shadow-lg'
+                  : 'card-moli text-foreground-muted hover:text-foreground hover:border-primary'
+              }`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.05, y: -1 }}
+              whileTap={{ scale: 0.95 }}
             >
               {category}
             </motion.button>
@@ -116,74 +249,86 @@ export default function Artworks() {
         </motion.div>
 
         {loading ? (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex justify-center items-center py-16"
+            className="flex justify-center items-center py-20"
           >
-            <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            <motion.div
+              className="w-12 h-12 border-2 border-primary/20 border-t-primary rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
             {filteredArtworks.map((work, index) => (
-              <motion.div 
-                key={work.id} 
-                initial={{ opacity: 0, y: 20 }} 
-                whileInView={{ opacity: 1, y: 0 }} 
-                viewport={{ once: true }} 
-                transition={{ duration: 0.5, delay: index * 0.08 }}
-                className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized"
+              <ArtworkCard
+                key={work.id}
+                work={work}
+                index={index}
                 onClick={() => setSelectedImage(work.image)}
-              >
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  <img 
-                    src={work.image} 
-                    alt={work.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-dark/70 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="p-5">
-                  <h3 className="font-semibold text-lg text-foreground">{work.title}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2 py-1 bg-primary/15 text-secondary rounded-full text-xs">
-                      {work.category}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
+              />
             ))}
-          </div>
+          </motion.div>
         )}
 
-        {!loading && artworks.length === 0 && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-foreground-subtle mt-12 text-lg">
-            暂无作品，快去上传吧！
+        {!loading && filteredArtworks.length === 0 && (
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center text-foreground-subtle mt-12 text-lg"
+          >
+            {activeCategory === '全部' ? '暂无作品，快去上传吧！' : `暂无"${activeCategory}"分类的作品`}
           </motion.p>
         )}
       </div>
 
       <AnimatePresence>
         {selectedImage && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-50 bg-dark/95 backdrop-blur-sm flex items-center justify-center p-4"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 bg-dark/95 backdrop-blur-md flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.95, opacity: 0 }}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-4xl max-h-[80vh]"
+              className="relative max-w-5xl max-h-[90vh]"
             >
-              <img 
-                src={selectedImage} 
-                alt="Preview" 
-                className="rounded-2xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+              <motion.img
+                src={selectedImage}
+                alt="Preview"
+                className="rounded-2xl max-w-full max-h-[90vh] object-contain shadow-2xl"
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.4 }}
               />
+              
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-4 -right-4 w-10 h-10 rounded-full glass flex items-center justify-center"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg className="w-5 h-5 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </motion.button>
             </motion.div>
           </motion.div>
         )}

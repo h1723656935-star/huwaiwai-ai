@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Artworks from '@/components/Artworks';
@@ -9,37 +9,66 @@ import Videos from '@/components/Videos';
 import Footer from '@/components/Footer';
 import IntroAnimation from '@/components/IntroAnimation';
 import MoliCharacter from '@/components/MoliCharacter';
+import CustomCursor from '@/components/CustomCursor';
+import MouseGlow from '@/components/MouseGlow';
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll();
+  
+  const parallaxY = useTransform(scrollYProgress, [0, 0.3], [0, 100]);
 
   useEffect(() => {
-    // 页面加载后启动 Intro，2.8s 后消失
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  // 内容区域的进场动画变体
   const pageVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
+        staggerChildren: 0.12,
+        delayChildren: 0.3,
       },
     },
   };
 
   const sectionVariants = {
-    hidden: { opacity: 0, y: 50 },
+    hidden: { opacity: 0, y: 40 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
     },
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div 
+      ref={containerRef}
+      className={`min-h-screen bg-background overflow-x-hidden ${isLoaded ? 'cursor-none' : ''}`}
+    >
+      {isLoaded && <CustomCursor />}
+      
+      <MouseGlow />
+
+      <motion.div
+        className="fixed inset-0 pointer-events-none z-[5]"
+        style={{ y: parallaxY }}
+      >
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 0%, rgba(120, 101, 248, 0.08) 0%, transparent 50%)',
+            backgroundAttachment: 'fixed',
+          }}
+        />
+      </motion.div>
+
       <AnimatePresence>
         {showIntro && (
           <IntroAnimation
@@ -54,6 +83,7 @@ export default function App() {
         variants={pageVariants}
         initial="hidden"
         animate={showIntro ? 'hidden' : 'visible'}
+        className="relative z-[20]"
       >
         <motion.div variants={sectionVariants}>
           <Navbar />
@@ -78,7 +108,6 @@ export default function App() {
         </motion.footer>
       </motion.div>
 
-      {/* 「墨璃」看板娘 - 数字看板娘 - 网站视觉核心 */}
       <MoliCharacter />
     </div>
   );
