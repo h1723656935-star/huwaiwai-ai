@@ -53,7 +53,7 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="card-moli overflow-hidden cursor-pointer"
+      className="card-moli overflow-hidden cursor-pointer artwork-card"
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

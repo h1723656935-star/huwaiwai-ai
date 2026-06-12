@@ -138,7 +138,7 @@ export default function Videos() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}
-                className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized"
+                className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized video-card"
                 onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
               >
                 <div className="relative aspect-video overflow-hidden">
