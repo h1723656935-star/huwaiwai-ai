@@ -8,10 +8,15 @@ import type { Artwork, Video, Skill, TimelineItem, Stat, SocialLink, SiteConfig 
 
 interface ArtworkForm {
   title: string;
-  category: string;
+  categories: string[];  // 改为多选
   tags: string;
   date: string;
   image: string;
+  description: string;
+  model: string;
+  dimensions: string;
+  prompt: string;
+  negativePrompt: string;
 }
 
 interface VideoForm {
@@ -21,7 +26,7 @@ interface VideoForm {
   thumbnail: string;
   url: string;
   videoFile: string;
-  category: string;
+  categories: string[];  // 改为多选
 }
 
 interface SkillForm {
@@ -213,6 +218,56 @@ function ThemedCard({
   );
 }
 
+// ============= 分类多选组件 =============
+function CategoryMultiSelect({
+  categories,
+  selectedCategories,
+  onChange,
+  placeholder = '请选择分类',
+}: {
+  categories: string[];
+  selectedCategories: string[];
+  onChange: (categories: string[]) => void;
+  placeholder?: string;
+}) {
+  const toggleCategory = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      onChange(selectedCategories.filter(c => c !== category));
+    } else {
+      onChange([...selectedCategories, category]);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
+        {placeholder} ({selectedCategories.length}个)
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {categories.map(cat => (
+          <motion.button
+            key={cat}
+            onClick={() => toggleCategory(cat)}
+            className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+            style={{
+              background: selectedCategories.includes(cat)
+                ? 'rgba(120, 101, 248, 0.3)'
+                : 'rgba(13, 10, 24, 0.4)',
+              color: selectedCategories.includes(cat) ? '#A991FF' : THEME.text.muted,
+              border: `1px solid ${selectedCategories.includes(cat) ? 'rgba(120, 101, 248, 0.5)' : 'rgba(120, 101, 248, 0.15)' }`,
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {selectedCategories.includes(cat) && <Icons.Check className="w-3 h-3 inline-block mr-1" />}
+            {cat}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============= 主组件 =============
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -235,12 +290,20 @@ export default function AdminPage() {
 
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
 
+  // 编辑状态
+  const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
+
   const [imageForm, setImageForm] = useState<ArtworkForm>({
     title: '',
-    category: '二次元',
+    categories: [],
     tags: '',
     date: new Date().toISOString().split('T')[0],
     image: '',
+    description: '',
+    model: '',
+    dimensions: '',
+    prompt: '',
+    negativePrompt: '',
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -251,7 +314,7 @@ export default function AdminPage() {
     thumbnail: '',
     url: '',
     videoFile: '',
-    category: '二次元',
+    categories: [],
   });
   const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -268,13 +331,11 @@ export default function AdminPage() {
   const [socialLinkForm, setSocialLinkForm] = useState<SocialLinkForm>({ name: '', icon: 'Mail', url: '' });
   const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
 
-  const defaultImageCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
-  const defaultVideoCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
-  const [imageCategories, setImageCategories] = useState<string[]>(defaultImageCategories);
-  const [videoCategories, setVideoCategories] = useState<string[]>(defaultVideoCategories);
+  const defaultCategories = ['二次元', '古风', '少女风', '温暖风格', '人像', '赛博朋克', '科幻', '奇幻'];
+  const [imageCategories, setImageCategories] = useState<string[]>(defaultCategories);
+  const [videoCategories, setVideoCategories] = useState<string[]>(defaultCategories);
   const [newImageCategory, setNewImageCategory] = useState('');
   const [newVideoCategory, setNewVideoCategory] = useState('');
-  const [videoCategory, setVideoCategory] = useState('二次元');
 
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -324,7 +385,7 @@ export default function AdminPage() {
           setImageCategories(parsed);
         }
       } catch {
-        setImageCategories(defaultImageCategories);
+        setImageCategories(defaultCategories);
       }
     }
     const storedVid = localStorage.getItem('videoCategories');
@@ -335,7 +396,7 @@ export default function AdminPage() {
           setVideoCategories(parsed);
         }
       } catch {
-        setVideoCategories(defaultVideoCategories);
+        setVideoCategories(defaultCategories);
       }
     }
   }, []);
@@ -376,21 +437,17 @@ export default function AdminPage() {
   };
 
   const handleDeleteImageCategory = (category: string) => {
-    if (!confirm(`确定要删除图片分类"${category}"吗？`)) return;
+    if (!confirm(`确定要删除分类"${category}"吗？`)) return;
     const filtered = imageCategories.filter(c => c !== category);
     setImageCategories(filtered);
-    if (imageForm.category === category) {
-      setImageForm({ ...imageForm, category: filtered[0] || defaultImageCategories[0] });
-    }
+    setImageForm({ ...imageForm, categories: imageForm.categories.filter(c => c !== category) });
   };
 
   const handleDeleteVideoCategory = (category: string) => {
-    if (!confirm(`确定要删除视频分类"${category}"吗？`)) return;
+    if (!confirm(`确定要删除分类"${category}"吗？`)) return;
     const filtered = videoCategories.filter(c => c !== category);
     setVideoCategories(filtered);
-    if (videoCategory === category) {
-      setVideoCategory(filtered[0] || defaultVideoCategories[0]);
-    }
+    setVideoForm({ ...videoForm, categories: videoForm.categories.filter(c => c !== category) });
   };
 
   const handleClearAllWorks = async (type: 'image' | 'video') => {
@@ -522,22 +579,85 @@ export default function AdminPage() {
     };
   };
 
+  // 编辑作品
+  const handleEditArtwork = (artwork: Artwork) => {
+    setEditingArtwork(artwork);
+    setImageForm({
+      title: artwork.title,
+      categories: artwork.categories || [],
+      tags: artwork.tags?.join(', ') || '',
+      date: artwork.date,
+      image: artwork.image,
+      description: artwork.description || '',
+      model: artwork.model || '',
+      dimensions: artwork.dimensions || '',
+      prompt: artwork.prompt || '',
+      negativePrompt: artwork.negativePrompt || '',
+    });
+    setImagePreview(artwork.image);
+    setWorksTab('image');
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setEditingArtwork(null);
+    setImageForm({
+      title: '',
+      categories: [],
+      tags: '',
+      date: new Date().toISOString().split('T')[0],
+      image: '',
+      description: '',
+      model: '',
+      dimensions: '',
+      prompt: '',
+      negativePrompt: '',
+    });
+    setImagePreview(null);
+  };
+
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
     try {
       const tagsArray = imageForm.tags.split(',').map(tag => tag.trim()).filter(Boolean);
-      await worksService.createArtwork({
-        title: imageForm.title,
-        category: imageForm.category,
-        tags: tagsArray,
-        date: imageForm.date,
-        image: imageForm.image,
-      });
+      const categories = imageForm.categories.length > 0 ? imageForm.categories : ['未分类'];
+
+      if (editingArtwork) {
+        // 编辑模式
+        await worksService.updateArtwork(editingArtwork.id, {
+          title: imageForm.title,
+          category: categories[0],  // 保持兼容旧字段
+          categories,
+          tags: tagsArray,
+          date: imageForm.date,
+          image: imageForm.image,
+          description: imageForm.description,
+          model: imageForm.model,
+          dimensions: imageForm.dimensions,
+          prompt: imageForm.prompt,
+          negativePrompt: imageForm.negativePrompt,
+        });
+      } else {
+        // 新增模式
+        await worksService.createArtwork({
+          title: imageForm.title,
+          category: categories[0],  // 保持兼容旧字段
+          categories,
+          tags: tagsArray,
+          date: imageForm.date,
+          image: imageForm.image,
+          description: imageForm.description,
+          model: imageForm.model,
+          dimensions: imageForm.dimensions,
+          prompt: imageForm.prompt,
+          negativePrompt: imageForm.negativePrompt,
+        });
+      }
+
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      setImageForm({ title: '', category: '二次元', tags: '', date: new Date().toISOString().split('T')[0], image: '' });
-      setImagePreview(null);
+      handleCancelEdit();
       loadAllData();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -562,6 +682,7 @@ export default function AdminPage() {
     e.preventDefault();
     setUploading(true);
     try {
+      const categories = videoForm.categories.length > 0 ? videoForm.categories : ['未分类'];
       await worksService.createVideo({
         title: videoForm.title,
         description: videoForm.description,
@@ -569,11 +690,11 @@ export default function AdminPage() {
         thumbnail: videoForm.thumbnail,
         url: videoForm.url,
         videoFile: videoForm.videoFile || undefined,
-        category: videoForm.category,
+        category: categories[0],
       });
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
+      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', categories: [] });
       setVideoThumbnailPreview(null);
       setVideoPreview(null);
       loadAllData();
@@ -601,6 +722,9 @@ export default function AdminPage() {
     try {
       await worksService.deleteArtwork(id);
       setUserArtworks(prev => prev.filter(a => a.id !== id));
+      if (editingArtwork?.id === id) {
+        handleCancelEdit();
+      }
       alert('删除成功！');
     } catch (error) {
       alert('删除失败，请重试');
@@ -758,7 +882,7 @@ export default function AdminPage() {
     e.preventDefault();
     try {
       if (siteConfig) {
-        await worksService.updateSiteConfig(siteConfig);
+        await worksService.updateSiteConfig(siteConfig.id, siteConfig);
         setSubmitted(true);
         setTimeout(() => setSubmitted(false), 3000);
         alert('配置更新成功！');
@@ -802,7 +926,7 @@ export default function AdminPage() {
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
                 color: 'transparent',
-                fontFamily: "'Smiley Sans', sans-serif",
+                fontFamily: "'Noto Sans SC', 'PingFang SC', sans-serif",
               }}
             >
               墨璃 - 管理后台
@@ -877,7 +1001,7 @@ export default function AdminPage() {
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                   color: 'transparent',
-                  fontFamily: "'Smiley Sans', sans-serif",
+                  fontFamily: "'Noto Sans SC', 'PingFang SC', sans-serif",
                 }}
               >
                 墨璃 · MOLI - 管理后台
@@ -970,56 +1094,54 @@ export default function AdminPage() {
                       placeholder="作品标题"
                       required
                     />
-                    <div className="space-y-2">
-                      <ThemedSelect
-                        value={imageForm.category}
-                        onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
-                      >
-                        {imageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </ThemedSelect>
-                      <div
-                        className="rounded-xl p-3 space-y-2"
-                        style={{
-                          border: '1px solid rgba(120, 101, 248, 0.15)',
-                          background: 'rgba(13, 10, 24, 0.4)',
-                        }}
-                      >
-                        <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
-                          管理图片分类标签
-                        </p>
-                        <div className="flex gap-2">
-                          <ThemedInput
-                            type="text"
-                            value={newImageCategory}
-                            onChange={(e) => setNewImageCategory(e.target.value)}
-                            placeholder="新分类名称"
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageCategory(); } }}
-                          />
-                          <ThemedButton onClick={handleAddImageCategory} variant="gradient">
-                            添加
-                          </ThemedButton>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {imageCategories.map(cat => (
-                            <span
-                              key={cat}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-                              style={{
-                                background: 'rgba(120, 101, 248, 0.15)',
-                                color: '#A991FF',
-                              }}
+                    <CategoryMultiSelect
+                      categories={imageCategories}
+                      selectedCategories={imageForm.categories}
+                      onChange={(categories) => setImageForm({ ...imageForm, categories })}
+                      placeholder="请选择分类"
+                    />
+                    <div
+                      className="rounded-xl p-3 space-y-2"
+                      style={{
+                        border: '1px solid rgba(120, 101, 248, 0.15)',
+                        background: 'rgba(13, 10, 24, 0.4)',
+                      }}
+                    >
+                      <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
+                        管理图片分类标签
+                      </p>
+                      <div className="flex gap-2">
+                        <ThemedInput
+                          type="text"
+                          value={newImageCategory}
+                          onChange={(e) => setNewImageCategory(e.target.value)}
+                          placeholder="新分类名称"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageCategory(); } }}
+                        />
+                        <ThemedButton onClick={handleAddImageCategory} variant="gradient">
+                          添加
+                        </ThemedButton>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {imageCategories.map(cat => (
+                          <span
+                            key={cat}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                            style={{
+                              background: 'rgba(120, 101, 248, 0.15)',
+                              color: '#A991FF',
+                            }}
+                          >
+                            {cat}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteImageCategory(cat)}
+                              className="rounded-full p-0.5 hover:bg-purple-500/20"
                             >
-                              {cat}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteImageCategory(cat)}
-                                className="rounded-full p-0.5 hover:bg-purple-500/20"
-                              >
-                                <Icons.X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
+                              <Icons.X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
                       </div>
                     </div>
                     <ThemedInput
@@ -1078,56 +1200,54 @@ export default function AdminPage() {
                       placeholder="视频标题"
                       required
                     />
-                    <div className="space-y-2">
-                      <ThemedSelect
-                        value={videoForm.category}
-                        onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
-                      >
-                        {videoCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </ThemedSelect>
-                      <div
-                        className="rounded-xl p-3 space-y-2"
-                        style={{
-                          border: '1px solid rgba(120, 101, 248, 0.15)',
-                          background: 'rgba(13, 10, 24, 0.4)',
-                        }}
-                      >
-                        <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
-                          管理视频分类标签
-                        </p>
-                        <div className="flex gap-2">
-                          <ThemedInput
-                            type="text"
-                            value={newVideoCategory}
-                            onChange={(e) => setNewVideoCategory(e.target.value)}
-                            placeholder="新分类名称"
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideoCategory(); } }}
-                          />
-                          <ThemedButton onClick={handleAddVideoCategory} variant="gradient">
-                            添加
-                          </ThemedButton>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {videoCategories.map(cat => (
-                            <span
-                              key={cat}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-                              style={{
-                                background: 'rgba(120, 101, 248, 0.15)',
-                                color: '#A991FF',
-                              }}
+                    <CategoryMultiSelect
+                      categories={videoCategories}
+                      selectedCategories={videoForm.categories}
+                      onChange={(categories) => setVideoForm({ ...videoForm, categories })}
+                      placeholder="请选择分类"
+                    />
+                    <div
+                      className="rounded-xl p-3 space-y-2"
+                      style={{
+                        border: '1px solid rgba(120, 101, 248, 0.15)',
+                        background: 'rgba(13, 10, 24, 0.4)',
+                      }}
+                    >
+                      <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
+                        管理视频分类标签
+                      </p>
+                      <div className="flex gap-2">
+                        <ThemedInput
+                          type="text"
+                          value={newVideoCategory}
+                          onChange={(e) => setNewVideoCategory(e.target.value)}
+                          placeholder="新分类名称"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideoCategory(); } }}
+                        />
+                        <ThemedButton onClick={handleAddVideoCategory} variant="gradient">
+                          添加
+                        </ThemedButton>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {videoCategories.map(cat => (
+                          <span
+                            key={cat}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                            style={{
+                              background: 'rgba(120, 101, 248, 0.15)',
+                              color: '#A991FF',
+                            }}
+                          >
+                            {cat}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteVideoCategory(cat)}
+                              className="rounded-full p-0.5 hover:bg-purple-500/20"
                             >
-                              {cat}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteVideoCategory(cat)}
-                                className="rounded-full p-0.5 hover:bg-purple-500/20"
-                              >
-                                <Icons.X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
+                              <Icons.X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
                       </div>
                     </div>
                     <ThemedTextarea

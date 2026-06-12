@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="moonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8EEF5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8C5D6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="moonInner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7865F8;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#5E3D8A;stop-opacity:0.9" />
+    </linearGradient>
+    <linearGradient id="crystalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A991FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7865F8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5E3D8A;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="crystalLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ECE7FF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#A991FF;stop-opacity:0" />
+    </linearGradient>
+    <linearGradient id="hGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8EEF5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C0C5D0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Moon Ring -->
+  <path d="M300 200 C300 145 255 100 200 100 C145 100 100 145 100 200 C100 280 160 340 230 355 C240 358 250 355 260 350 L280 330 C265 335 250 335 235 330 C175 305 140 250 140 200 C140 160 170 130 200 130 C230 130 255 150 275 180 L290 155 C270 125 240 105 200 105 C150 105 110 145 110 200 C110 265 155 315 215 330 C230 335 250 335 265 325 L285 300 C270 310 245 310 225 300 C180 275 155 230 155 200 C155 170 175 145 200 145 C220 145 235 160 250 180 L270 145 C250 120 220 105 200 105" 
+        fill="none" 
+        stroke="url(#moonGradient)" 
+        stroke-width="8" 
+        stroke-linecap="round"/>
+  
+  <!-- Inner Moon Ring -->
+  <path d="M280 200 C280 150 240 110 200 110 C160 110 125 150 125 200 C125 270 180 320 240 335 C250 338 260 335 270 325 L285 305 C270 315 245 315 225 305 C180 280 155 235 155 200 C155 165 180 140 200 140 C220 140 235 155 250 175 L270 140 C250 115 220 100 200 100 C155 100 115 140 115 200 C115 265 160 315 220 330 C235 335 255 335 270 325" 
+        fill="none" 
+        stroke="url(#moonInner)" 
+        stroke-width="6" 
+        stroke-linecap="round"
+        opacity="0.6"/>
+  
+  <!-- Crystal Pieces -->
+  <polygon points="200,80 215,140 230,140 225,80" fill="url(#crystalGradient)" />
+  <polygon points="190,140 200,80 210,140" fill="url(#crystalLight)" opacity="0.7" />
+  
+  <polygon points="230,140 245,200 260,200 250,140" fill="url(#crystalGradient)" opacity="0.8" />
+  <polygon points="235,140 245,200 255,140" fill="url(#crystalLight)" opacity="0.5" />
+  
+  <polygon points="170,140 185,200 200,200 190,140" fill="url(#crystalGradient)" opacity="0.7" />
+  <polygon points="175,140 185,200 195,140" fill="url(#crystalLight)" opacity="0.5" />
+  
+  <polygon points="200,200 215,280 230,280 225,200" fill="url(#crystalGradient)" />
+  <polygon points="195,200 205,280 210,200" fill="url(#crystalLight)" opacity="0.6" />
+  
+  <polygon points="170,200 185,260 195,260 190,200" fill="url(#crystalGradient)" opacity="0.6" />
+  <polygon points="175,200 185,260 190,200" fill="url(#crystalLight)" opacity="0.4" />
+  
+  <polygon points="230,200 245,260 255,260 250,200" fill="url(#crystalGradient)" opacity="0.7" />
+  <polygon points="235,200 245,260 250,200" fill="url(#crystalLight)" opacity="0.5" />
+  
+  <!-- H Letter -->
+  <rect x="175" y="140" width="15" height="120" rx="3" fill="url(#hGradient)" />
+  <rect x="210" y="140" width="15" height="120" rx="3" fill="url(#hGradient)" />
+  <rect x="175" y="190" width="50" height="15" rx="3" fill="url(#hGradient)" />
+  
+  <!-- H Letter Inner Shadow -->
+  <rect x="175" y="140" width="15" height="120" rx="3" fill="rgba(0,0,0,0.1)" opacity="0.3" />
+  <rect x="210" y="140" width="15" height="120" rx="3" fill="rgba(0,0,0,0.1)" opacity="0.3" />
+</svg>

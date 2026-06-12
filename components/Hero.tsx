@@ -1,194 +1,173 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import SparklesBackground from './SparklesBackground';
-import * as worksService from '@/lib/worksService';
-import type { SiteConfig } from '@/lib/worksService';
+import { motion } from 'framer-motion';
+import { Sparkles, ChevronDown } from 'lucide-react';
 
 export default function Hero() {
-  const [config, setConfig] = useState<SiteConfig | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end start'],
-  });
-
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, 100]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, 50]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.3], [1, 0.9]);
-
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
-    try {
-      const configData = await worksService.getSiteConfig();
-      setConfig(configData);
-    } catch (error) {
-      console.error('Failed to load config:', error);
+  const scrollToContent = () => {
+    const element = document.getElementById('artworks');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  if (!config) {
-    return (
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg-dark">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
-        />
-      </section>
-    );
-  }
-
   return (
-    <section
-      ref={containerRef}
-      id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg-dark"
-    >
-      <SparklesBackground />
-
-      <motion.div
-        className="absolute inset-0 overflow-hidden"
-        style={{ y: y1 }}
-      >
-        <motion.div
-          className="absolute -top-[30%] -right-[20%] w-[800px] h-[800px] rounded-full"
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div 
+          className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle, rgba(120,101,248,0.15) 0%, rgba(169,145,255,0.08) 40%, transparent 70%)',
+            background: 'radial-gradient(ellipse at 50% 50%, rgba(120, 101, 248, 0.15) 0%, transparent 60%)',
           }}
-          animate={{ 
-            scale: [1, 1.2, 1],
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
-      </motion.div>
-
-      <motion.div
-        className="absolute inset-0 overflow-hidden"
-        style={{ y: y2 }}
-      >
-        <motion.div
-          className="absolute -bottom-[25%] -left-[15%] w-[600px] h-[600px] rounded-full"
+        <div 
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(169,145,255,0.12) 0%, rgba(120,101,248,0.06) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(169, 145, 255, 0.1) 0%, transparent 70%)',
+            animation: 'pulse 8s ease-in-out infinite',
           }}
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
         />
-      </motion.div>
-
-      <motion.div
-        className="absolute inset-0 overflow-hidden"
-        style={{ y: y3 }}
-      >
-        <motion.div
-          className="absolute top-[40%] left-[10%] w-[400px] h-[400px] rounded-full"
+        <div 
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(199,184,255,0.08) 0%, transparent 60%)',
+            background: 'radial-gradient(circle, rgba(120, 101, 248, 0.1) 0%, transparent 70%)',
+            animation: 'pulse 10s ease-in-out infinite reverse',
           }}
-          animate={{ 
-            scale: [1, 1.3, 1],
-            opacity: [0.5, 0.8, 0.5],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
-      </motion.div>
+        
+        {/* Grid Pattern */}
+        <div 
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(169, 145, 255, 0.3) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(169, 145, 255, 0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
 
+      {/* Main Content */}
       <motion.div
-        className="relative z-10 text-center px-4 max-w-4xl mx-auto"
-        style={{ opacity, scale }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="relative z-10 text-center px-4"
       >
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8"
+          style={{
+            background: 'rgba(120, 101, 248, 0.15)',
+            border: '1px solid rgba(120, 101, 248, 0.3)',
+          }}
         >
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-secondary font-medium mb-6 text-lg tracking-[0.3em]"
-          >
-            Welcome to
-          </motion.p>
+          <Sparkles className="w-4 h-4" style={{ color: '#A991FF' }} />
+          <span className="text-sm font-medium" style={{ color: '#C7B8FF' }}>
+            AI艺术画廊
+          </span>
+        </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.7 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
-          >
-            <span className="gradient-text-moli">{config.heroTitle}</span>
-          </motion.h1>
+        <h1
+          className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6"
+          style={{
+            background: 'linear-gradient(135deg, #ECE7FF 0%, #C7B8FF 30%, #A991FF 50%, #7865F8 70%, #C7B8FF 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontFamily: "'Noto Sans SC', 'PingFang SC', sans-serif",
+            textShadow: '0 0 60px rgba(120, 101, 248, 0.3)',
+          }}
+        >
+          墨璃画廊
+        </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
-            className="text-xl sm:text-2xl text-foreground-muted mb-8"
-          >
-            {config.heroSubtitle}
-          </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1 }}
+          className="text-lg md:text-xl max-w-2xl mx-auto mb-12"
+          style={{ color: 'rgba(199, 184, 255, 0.8)' }}
+        >
+          探索AI创作的无限可能
+          <br />
+          <span style={{ color: 'rgba(199, 184, 255, 0.6)' }}>
+            每一幅作品都是数字艺术的杰作
+          </span>
+        </motion.p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65, duration: 0.7 }}
-            className="text-foreground-subtle mb-10 max-w-xl mx-auto text-lg leading-relaxed"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+        >
+          <motion.button
+            onClick={scrollToContent}
+            className="px-8 py-4 rounded-xl font-medium text-white"
+            style={{
+              background: 'linear-gradient(135deg, #7865F8 0%, #A991FF 100%)',
+              boxShadow: '0 4px 30px rgba(120, 101, 248, 0.4)',
+            }}
+            whileHover={{ scale: 1.05, boxShadow: '0 6px 40px rgba(120, 101, 248, 0.5)' }}
+            whileTap={{ scale: 0.98 }}
           >
-            {config.heroDescription}
-          </motion.p>
+            探索画廊
+          </motion.button>
 
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.7 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+          <motion.button
+            className="px-8 py-4 rounded-xl font-medium"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(120, 101, 248, 0.4)',
+              color: '#C7B8FF',
+            }}
+            whileHover={{ 
+              scale: 1.05, 
+              background: 'rgba(120, 101, 248, 0.1)',
+              borderColor: 'rgba(120, 101, 248, 0.6)'
+            }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => window.open('/admin', '_self')}
           >
-            <motion.a
-              href="#artworks"
-              className="gradient-btn px-10 py-4 rounded-full font-medium text-lg"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            >
-              浏览作品
-            </motion.a>
-            <motion.a
-              href="#contact"
-              className="border border-primary/40 text-foreground-muted px-10 py-4 rounded-full font-medium text-lg hover:bg-primary/10 hover:border-primary hover:text-foreground transition-all duration-300"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            >
-              联系我
-            </motion.a>
-          </motion.div>
+            上传作品
+          </motion.button>
         </motion.div>
       </motion.div>
 
+      {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-12 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ opacity }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1.8 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <div className="w-6 h-10 border border-primary/30 rounded-full flex justify-center pt-2">
+        <motion.button
+          onClick={scrollToContent}
+          className="flex flex-col items-center gap-2"
+          style={{ color: '#C7B8FF' }}
+          whileHover={{ color: '#ECE7FF' }}
+        >
+          <span className="text-xs font-medium">向下滚动</span>
           <motion.div
-            className="w-1.5 h-3 bg-primary/60 rounded-full"
             animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </div>
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <ChevronDown className="w-6 h-6" />
+          </motion.div>
+        </motion.button>
       </motion.div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.2); opacity: 0.8; }
+        }
+      `}</style>
     </section>
   );
 }

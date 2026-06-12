@@ -3,22 +3,9 @@
 @tailwind utilities;
 
 /* ====== 字体引入 ====== */
-@font-face {
-  font-family: 'Smiley Sans';
-  src: url('https://fonts.cdnfonts.com/s/35048/SmileySans-Regular.woff2') format('woff2'),
-       url('https://fonts.cdnfonts.com/s/35048/SmileySans-Regular.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Smiley Sans';
-  src: url('https://fonts.cdnfonts.com/s/35048/SmileySans-Bold.woff2') format('woff2'),
-       url('https://fonts.cdnfonts.com/s/35048/SmileySans-Bold.woff') format('woff');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
+/* 使用系统字体作为后备 */
+:root {
+  --font-display: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 /* ====== Dark Moon Violet Theme ====== */
@@ -98,7 +85,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Smiley Sans', 'HarmonyOS Sans', sans-serif;
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     font-weight: 600;
     letter-spacing: -0.02em;
   }

@@ -2,244 +2,257 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, X, Video as VideoIcon } from 'lucide-react';
-import { getVideos } from '@/lib/worksService';
-import type { Video } from '@/lib/worksService';
+import { Play, Heart, Eye } from 'lucide-react';
+import { worksService, Video } from '@/lib/worksService';
 
 export default function Videos() {
-  const [activeCategory, setActiveCategory] = useState('全部');
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [playingId, setPlayingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchVideos();
+    loadVideos();
   }, []);
 
-  const fetchVideos = async () => {
+  useEffect(() => {
+    const saved = localStorage.getItem('videoFavorites');
+    if (saved) {
+      setFavorites(new Set(JSON.parse(saved)));
+    }
+  }, []);
+
+  const loadVideos = async () => {
     setLoading(true);
     try {
-      const dbVideos = await getVideos();
-      const stored = localStorage.getItem('userVideos');
-      const localVideos: Video[] = stored ? JSON.parse(stored) : [];
-      const videoMap = new Map<string, Video>();
-      localVideos.forEach(v => videoMap.set(v.id, v));
-      dbVideos.forEach(v => videoMap.set(v.id, v));
-      setVideos(Array.from(videoMap.values()));
+      const data = await worksService.getAllVideos();
+      setVideos(data);
     } catch (error) {
-      console.error('Failed to fetch videos:', error);
-      const stored = localStorage.getItem('userVideos');
-      setVideos(stored ? JSON.parse(stored) : []);
+      console.error('Failed to load videos:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getDynamicCategories = (): string[] => {
-    const cats = new Set<string>();
-    cats.add('全部');
-    videos.forEach(v => { if (v.category) cats.add(v.category); });
-    try {
-      const stored = localStorage.getItem('videoCategories');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((c: string) => cats.add(c));
-        }
-      }
-    } catch { /* ignore */ }
-    return Array.from(cats);
+  const toggleFavorite = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(id)) {
+      newFavorites.delete(id);
+    } else {
+      newFavorites.add(id);
+    }
+    setFavorites(newFavorites);
+    localStorage.setItem('videoFavorites', JSON.stringify([...newFavorites]));
   };
 
-  const categories = getDynamicCategories();
-
-  const filteredVideos = activeCategory === '全部'
-    ? videos
-    : videos.filter((v) => v.category === activeCategory);
-
   return (
-    <section id="videos" className="py-24 px-4 gradient-bg">
-      <div className="max-w-7xl mx-auto">
+    <section id="videos" className="py-20 px-4 relative">
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 80% 50%, rgba(120, 101, 248, 0.05) 0%, transparent 50%)',
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-secondary font-medium mb-4 text-lg"
+          <h2
+            className="text-3xl md:text-4xl font-bold mb-4"
+            style={{
+              background: 'linear-gradient(135deg, #ECE7FF 0%, #A991FF 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
           >
-            AI Video Gallery
-          </motion.p>
-          <h2 className="text-3xl md:text-4xl font-bold text-gradient-title mb-4">
-            AI视频作品
+            视频作品
           </h2>
-          <p className="text-foreground-subtle max-w-2xl mx-auto text-lg">
-            记录创作过程，分享AI视频制作技巧与心得
+          <p style={{ color: 'rgba(199, 184, 255, 0.7)' }}>
+            探索由AI创作的精彩视频内容
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-6">
-            <motion.a
-              href="/admin"
-              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span>+</span> 上传视频
-            </motion.a>
-            <motion.button
-              onClick={fetchVideos}
-              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              ↻ 刷新
-            </motion.button>
-          </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-3 mb-12"
-        >
-          {categories.map((category) => (
-            <motion.button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 mobile-optimized ${activeCategory === category ? 'gradient-btn shadow-lg' : 'card-moli text-foreground-muted hover:text-foreground hover:border-primary'}`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {category}
-            </motion.button>
-          ))}
-        </motion.div>
-
+        {/* Video Grid */}
         {loading ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-center items-center py-16"
-          >
-            <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-          </motion.div>
-        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVideos.map((video, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
               <motion.div
-                key={video.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.08 }}
-                className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized video-card"
-                onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
-              >
-                <div className="relative aspect-video overflow-hidden">
-                  {video.thumbnail && video.thumbnail.length > 0 ? (
+                key={index}
+                className="aspect-video rounded-xl"
+                style={{ background: 'rgba(120, 101, 248, 0.1)' }}
+                animate={{ opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.1 }}
+              />
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            <AnimatePresence>
+              {videos.map((video, index) => (
+                <motion.div
+                  key={video.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  className="group"
+                  onMouseEnter={() => setHoveredId(video.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                >
+                  <motion.div
+                    className="block relative overflow-hidden rounded-xl cursor-pointer"
+                    style={{ aspectRatio: '16/9' }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setPlayingId(video.id)}
+                  >
                     <img
                       src={video.thumbnail}
                       alt={video.title}
-                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.style.background = 'linear-gradient(135deg, rgba(120,101,248,0.2) 0%, rgba(169,145,255,0.15) 100%)';
-                        }
+                      className="w-full h-full object-cover"
+                      style={{ transition: 'transform 0.5s ease' }}
+                      loading="lazy"
+                    />
+                    
+                    {/* Overlay */}
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(transparent 40%, rgba(13, 10, 24, 0.9) 100%)',
                       }}
                     />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/15 flex items-center justify-center">
-                      <VideoIcon className="w-16 h-16 text-primary/60" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-dark/40">
+
+                    {/* Play Button */}
                     <motion.div
-                      className="w-14 h-14 rounded-full glass flex items-center justify-center"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
+                      className="absolute inset-0 flex items-center justify-center"
+                      animate={{ opacity: hoveredId === video.id ? 1 : 0.7 }}
                     >
-                      <Play className="w-7 h-7 text-primary-light ml-1" fill="currentColor" />
+                      <motion.div
+                        className="w-16 h-16 rounded-full flex items-center justify-center"
+                        style={{
+                          background: 'rgba(120, 101, 248, 0.8)',
+                          boxShadow: '0 4px 20px rgba(120, 101, 248, 0.4)',
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <Play className="w-6 h-6 text-white ml-1" fill="white" />
+                      </motion.div>
                     </motion.div>
-                  </div>
-                  {video.duration && (
-                    <div className="absolute bottom-3 right-3 px-2 py-1 bg-dark/70 backdrop-blur-sm rounded-full text-white/90 text-sm">
-                      {video.duration}
+
+                    {/* Info */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 
+                        className="font-semibold mb-1 truncate"
+                        style={{ color: '#ECE7FF' }}
+                      >
+                        {video.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(199, 184, 255, 0.7)' }}>
+                        <span>{video.duration}</span>
+                        <span>{video.category || '未分类'}</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg text-foreground">{video.title}</h3>
-                    {video.category && (
-                      <span className="px-2 py-1 bg-primary/15 text-secondary rounded-full text-xs">
-                        {video.category}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-foreground-subtle text-sm">{video.description}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+
+                    {/* Stats */}
+                    <motion.div
+                      className="absolute top-3 right-3 flex flex-col gap-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: hoveredId === video.id ? 1 : 0 }}
+                    >
+                      <motion.button
+                        onClick={(e) => toggleFavorite(e, video.id)}
+                        className="p-2 rounded-full"
+                        style={{
+                          background: 'rgba(13, 10, 24, 0.7)',
+                          backdropFilter: 'blur(10px)',
+                        }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <Heart 
+                          className="w-4 h-4" 
+                          style={{ 
+                            color: favorites.has(video.id) ? '#FF6B8A' : '#C7B8FF',
+                            fill: favorites.has(video.id) ? '#FF6B8A' : 'none',
+                          }} 
+                        />
+                      </motion.button>
+                      <div 
+                        className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                        style={{
+                          background: 'rgba(13, 10, 24, 0.7)',
+                          backdropFilter: 'blur(10px)',
+                          color: '#C7B8FF',
+                        }}
+                      >
+                        <Eye className="w-3 h-3" />
+                        {video.views || 0}
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
 
-        {!loading && filteredVideos.length === 0 && (
-          <motion.p
+        {!loading && videos.length === 0 && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center text-foreground-subtle mt-12 text-lg"
+            className="text-center py-20"
           >
-            {activeCategory === '全部' ? '暂无视频作品，快去上传吧！' : `暂无"${activeCategory}"分类的视频作品`}
-          </motion.p>
+            <p style={{ color: 'rgba(199, 184, 255, 0.5)' }}>
+              暂无视频作品
+            </p>
+          </motion.div>
         )}
       </div>
 
+      {/* Video Modal */}
       <AnimatePresence>
-        {selectedVideo && (
+        {playingId && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-dark/95 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setSelectedVideo(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(13, 10, 24, 0.9)' }}
+            onClick={() => setPlayingId(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-4xl aspect-video rounded-xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-5xl aspect-video bg-dark-card rounded-2xl overflow-hidden border border-border"
             >
-              <button
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full glass flex items-center justify-center transition-colors hover:bg-primary/20"
-                onClick={() => setSelectedVideo(null)}
-              >
-                <X className="w-6 h-6 text-foreground-muted" />
-              </button>
-              {selectedVideo.startsWith('data:') ? (
+              {videos.find(v => v.id === playingId)?.url ? (
                 <video
-                  src={selectedVideo}
-                  controls
+                  src={videos.find(v => v.id === playingId)!.url}
                   autoPlay
+                  controls
                   className="w-full h-full"
                 />
               ) : (
-                <iframe
-                  src={selectedVideo.replace('watch?v=', 'embed/')}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                />
+                <div className="w-full h-full flex items-center justify-center" style={{ background: '#0D0A18' }}>
+                  <p style={{ color: 'rgba(199, 184, 255, 0.5)' }}>视频加载中...</p>
+                </div>
               )}
             </motion.div>
           </motion.div>
