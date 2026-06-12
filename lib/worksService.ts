@@ -14,6 +14,14 @@ export interface Artwork {
   date: string;
   image: string;
   created_at?: string;
+  liked?: boolean;
+  likes?: number;
+  description?: string;
+  views?: number;
+  model?: string;
+  dimensions?: string;
+  prompt?: string;
+  negativePrompt?: string;
 }
 
 export interface Video {
