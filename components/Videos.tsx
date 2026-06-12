@@ -58,7 +58,7 @@ export default function Videos() {
     : videos.filter((v) => v.category === activeCategory);
 
   return (
-    <section id="videos" className="py-24 px-4 bg-background">
+    <section id="videos" className="py-24 px-4 gradient-bg">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -71,7 +71,7 @@ export default function Videos() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-primary font-medium mb-4 text-lg"
+            className="text-secondary font-medium mb-4 text-lg"
           >
             AI Video Gallery
           </motion.p>
@@ -84,7 +84,7 @@ export default function Videos() {
           <div className="flex flex-wrap justify-center gap-3 mt-6">
             <motion.a
               href="/admin"
-              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-primary hover:border-primary transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -92,7 +92,7 @@ export default function Videos() {
             </motion.a>
             <motion.button
               onClick={fetchVideos}
-              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-primary hover:border-primary transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-3 card-moli text-foreground-muted hover:text-foreground hover:border-primary transition-all duration-300 mobile-optimized"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -112,9 +112,9 @@ export default function Videos() {
             <motion.button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 ${activeCategory === category ? 'gradient-btn shadow-lg' : 'card-moli text-foreground-muted hover:text-primary hover:border-primary'}`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 mobile-optimized ${activeCategory === category ? 'gradient-btn shadow-lg' : 'card-moli text-foreground-muted hover:text-foreground hover:border-primary'}`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               {category}
             </motion.button>
@@ -137,8 +137,8 @@ export default function Videos() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="card-moli overflow-hidden cursor-pointer hover-lift"
+                transition={{ duration: 0.5, delay: index * 0.08 }}
+                className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized"
                 onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
               >
                 <div className="relative aspect-video overflow-hidden">
@@ -152,7 +152,7 @@ export default function Videos() {
                         target.style.display = 'none';
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.style.background = 'linear-gradient(135deg, rgba(111,90,239,0.2) 0%, rgba(157,124,255,0.15) 100%)';
+                          parent.style.background = 'linear-gradient(135deg, rgba(120,101,248,0.2) 0%, rgba(169,145,255,0.15) 100%)';
                         }
                       }}
                     />
@@ -161,13 +161,13 @@ export default function Videos() {
                       <VideoIcon className="w-16 h-16 text-primary/60" />
                     </div>
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-dark/30">
+                  <div className="absolute inset-0 flex items-center justify-center bg-dark/40">
                     <motion.div
                       className="w-14 h-14 rounded-full glass flex items-center justify-center"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Play className="w-7 h-7 text-primary ml-1" fill="currentColor" />
+                      <Play className="w-7 h-7 text-primary-light ml-1" fill="currentColor" />
                     </motion.div>
                   </div>
                   {video.duration && (
@@ -180,7 +180,7 @@ export default function Videos() {
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-lg text-foreground">{video.title}</h3>
                     {video.category && (
-                      <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                      <span className="px-2 py-1 bg-primary/15 text-secondary rounded-full text-xs">
                         {video.category}
                       </span>
                     )}
@@ -209,13 +209,13 @@ export default function Videos() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-dark/90 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-dark/95 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setSelectedVideo(null)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-5xl aspect-video bg-dark-card rounded-2xl overflow-hidden border border-border"
             >

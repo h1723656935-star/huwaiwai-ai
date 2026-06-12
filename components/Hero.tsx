@@ -24,7 +24,7 @@ export default function Hero() {
 
   if (!config) {
     return (
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background bg-grid">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg-dark">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -37,7 +37,7 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background bg-stars"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-bg-dark"
     >
       <SparklesBackground />
 
@@ -46,18 +46,18 @@ export default function Hero() {
         <motion.div
           className="absolute -top-40 -right-40 w-96 h-96 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(111,90,239,0.15) 0%, rgba(157,124,255,0.08) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(120,101,248,0.12) 0%, rgba(169,145,255,0.06) 50%, transparent 70%)',
           }}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
           className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(199,184,255,0.12) 0%, rgba(157,124,255,0.06) 50%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(169,145,255,0.1) 0%, rgba(120,101,248,0.05) 50%, transparent 70%)',
           }}
-          animate={{ scale: [1.2, 1, 1.2] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ scale: [1.15, 1, 1.15] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
       </div>
 
@@ -65,63 +65,64 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="mobile-optimized"
         >
           <motion.p
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-primary font-medium mb-4 text-lg tracking-wider"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-secondary font-medium mb-4 text-lg tracking-wider"
           >
             Welcome to
           </motion.p>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4"
           >
             <span className="gradient-text-moli">{config.heroTitle}</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
             className="text-xl sm:text-2xl text-foreground-muted mb-6"
           >
             {config.heroSubtitle}
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
             className="text-foreground-subtle mb-8 max-w-xl mx-auto"
           >
             <p className="text-lg">{config.heroDescription}</p>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <motion.a
               href="#artworks"
-              className="gradient-btn px-8 py-4 rounded-full font-medium text-lg"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="gradient-btn px-8 py-4 rounded-full font-medium text-lg mobile-optimized"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               浏览作品
             </motion.a>
             <motion.a
               href="#contact"
-              className="border-2 border-primary/60 text-primary px-8 py-4 rounded-full font-medium text-lg hover:bg-primary/5 hover:border-primary transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="border-2 border-primary/50 text-foreground-muted px-8 py-4 rounded-full font-medium text-lg hover:bg-primary/10 hover:border-primary hover:text-foreground transition-all duration-300 mobile-optimized"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               联系我
             </motion.a>
@@ -131,13 +132,13 @@ export default function Hero() {
 
       <motion.div
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 10, 0] }}
+        animate={{ y: [0, 8, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="w-6 h-10 border-2 border-primary/40 rounded-full flex justify-center pt-2">
           <motion.div
             className="w-1.5 h-3 bg-primary rounded-full"
-            animate={{ y: [0, 6, 0] }}
+            animate={{ y: [0, 5, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
