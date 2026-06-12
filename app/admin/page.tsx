@@ -54,33 +54,187 @@ type MainTab = 'works' | 'about' | 'social' | 'config';
 type WorksTab = 'image' | 'video';
 type AboutTab = 'skills' | 'timeline' | 'stats';
 
+// ============= 统一主题样式常量 =============
+const THEME = {
+  // 卡片背景 - 深紫色毛玻璃
+  card: {
+    background: 'rgba(26, 22, 40, 0.7)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(120, 101, 248, 0.15)',
+    borderRadius: '1.5rem',
+  },
+  // 输入框
+  input: {
+    background: 'rgba(13, 10, 24, 0.6)',
+    border: '1px solid rgba(120, 101, 248, 0.15)',
+    color: '#ECE7FF',
+    placeholderColor: 'rgba(199, 184, 255, 0.4)',
+  },
+  // 文字颜色
+  text: {
+    primary: '#ECE7FF',
+    secondary: '#C7B8FF',
+    muted: 'rgba(199, 184, 255, 0.7)',
+    dim: 'rgba(199, 184, 255, 0.5)',
+  },
+  // 渐变按钮
+  gradientBtn: {
+    background: 'linear-gradient(135deg, #7865F8 0%, #A991FF 100%)',
+    color: '#F8F7FC',
+    boxShadow: '0 4px 20px rgba(120, 101, 248, 0.3)',
+  },
+  // 普通按钮
+  ghostBtn: {
+    background: 'rgba(120, 101, 248, 0.08)',
+    color: '#C7B8FF',
+    border: '1px solid rgba(120, 101, 248, 0.15)',
+  },
+};
+
+// ============= 通用样式组件 =============
+function ThemedInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${className || ''}`}
+      style={{
+        ...THEME.input,
+        fontSize: '0.95rem',
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = '#7865F8';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(120, 101, 248, 0.2)';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(120, 101, 248, 0.15)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    />
+  );
+}
+
+function ThemedTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const { className, ...rest } = props;
+  return (
+    <textarea
+      {...rest}
+      className={`w-full px-4 py-3 rounded-xl outline-none transition-all resize-none ${className || ''}`}
+      style={{
+        ...THEME.input,
+        fontSize: '0.95rem',
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = '#7865F8';
+        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(120, 101, 248, 0.2)';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(120, 101, 248, 0.15)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    />
+  );
+}
+
+function ThemedSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const { className, children, ...rest } = props;
+  return (
+    <select
+      {...rest}
+      className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${className || ''}`}
+      style={{
+        ...THEME.input,
+        fontSize: '0.95rem',
+      }}
+    >
+      {children}
+    </select>
+  );
+}
+
+function ThemedButton({
+  children,
+  onClick,
+  type = 'button',
+  disabled,
+  variant = 'gradient',
+  className = '',
+  fullWidth = false,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  type?: 'button' | 'submit';
+  disabled?: boolean;
+  variant?: 'gradient' | 'ghost';
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  const baseStyle = variant === 'gradient' ? THEME.gradientBtn : THEME.ghostBtn;
+  return (
+    <motion.button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`${fullWidth ? 'w-full' : ''} py-3 rounded-xl font-medium ${className}`}
+      style={{
+        ...baseStyle,
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+      whileHover={!disabled ? { scale: 1.02 } : {}}
+      whileTap={!disabled ? { scale: 0.98 } : {}}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+function ThemedCard({
+  children,
+  className = '',
+  initial,
+  animate,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  initial?: any;
+  animate?: any;
+}) {
+  return (
+    <motion.div
+      initial={initial}
+      animate={animate}
+      className={`p-6 ${className}`}
+      style={THEME.card}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ============= 主组件 =============
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
-  
-  // 主标签页
+
   const [mainTab, setMainTab] = useState<MainTab>('works');
   const [worksTab, setWorksTab] = useState<WorksTab>('image');
   const [aboutTab, setAboutTab] = useState<AboutTab>('skills');
-  
-  // 作品数据
+
   const [userArtworks, setUserArtworks] = useState<Artwork[]>([]);
   const [userVideos, setUserVideos] = useState<Video[]>([]);
-  
-  // 关于页面数据
+
   const [skills, setSkills] = useState<Skill[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
-  
-  // 社交链接数据
+
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  
-  // 网站配置
+
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  
-  // 图片表单
+
   const [imageForm, setImageForm] = useState<ArtworkForm>({
     title: '',
     category: '二次元',
@@ -89,8 +243,7 @@ export default function AdminPage() {
     image: '',
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // 视频表单
+
   const [videoForm, setVideoForm] = useState<VideoForm>({
     title: '',
     description: '',
@@ -102,24 +255,19 @@ export default function AdminPage() {
   });
   const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  
-  // 技能表单
+
   const [skillForm, setSkillForm] = useState<SkillForm>({ name: '', level: '80' });
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
-  
-  // 时间线表单
+
   const [timelineForm, setTimelineForm] = useState<TimelineForm>({ year: '', title: '', description: '' });
   const [editingTimeline, setEditingTimeline] = useState<TimelineItem | null>(null);
-  
-  // 统计表单
+
   const [statForm, setStatForm] = useState<StatForm>({ value: '', label: '', suffix: '' });
   const [editingStat, setEditingStat] = useState<Stat | null>(null);
-  
-  // 社交链接表单
+
   const [socialLinkForm, setSocialLinkForm] = useState<SocialLinkForm>({ name: '', icon: 'Mail', url: '' });
   const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
-  
-  // 分类标签 - 图片和视频独立
+
   const defaultImageCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
   const defaultVideoCategories = ['二次元', '古风', '少女风', '温暖风格', '人像'];
   const [imageCategories, setImageCategories] = useState<string[]>(defaultImageCategories);
@@ -128,7 +276,6 @@ export default function AdminPage() {
   const [newVideoCategory, setNewVideoCategory] = useState('');
   const [videoCategory, setVideoCategory] = useState('二次元');
 
-  // 状态
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -168,7 +315,6 @@ export default function AdminPage() {
     }
   };
 
-  // 加载自定义分类
   useEffect(() => {
     const storedImg = localStorage.getItem('imageCategories');
     if (storedImg) {
@@ -194,7 +340,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // 保存自定义分类到localStorage
   useEffect(() => {
     localStorage.setItem('imageCategories', JSON.stringify(imageCategories));
   }, [imageCategories]);
@@ -202,7 +347,6 @@ export default function AdminPage() {
     localStorage.setItem('videoCategories', JSON.stringify(videoCategories));
   }, [videoCategories]);
 
-  // 添加图片分类
   const handleAddImageCategory = () => {
     const trimmed = newImageCategory.trim();
     if (!trimmed) {
@@ -217,7 +361,6 @@ export default function AdminPage() {
     setNewImageCategory('');
   };
 
-  // 添加视频分类
   const handleAddVideoCategory = () => {
     const trimmed = newVideoCategory.trim();
     if (!trimmed) {
@@ -232,7 +375,6 @@ export default function AdminPage() {
     setNewVideoCategory('');
   };
 
-  // 删除图片分类
   const handleDeleteImageCategory = (category: string) => {
     if (!confirm(`确定要删除图片分类"${category}"吗？`)) return;
     const filtered = imageCategories.filter(c => c !== category);
@@ -242,7 +384,6 @@ export default function AdminPage() {
     }
   };
 
-  // 删除视频分类
   const handleDeleteVideoCategory = (category: string) => {
     if (!confirm(`确定要删除视频分类"${category}"吗？`)) return;
     const filtered = videoCategories.filter(c => c !== category);
@@ -252,7 +393,6 @@ export default function AdminPage() {
     }
   };
 
-  // 清空所有作品
   const handleClearAllWorks = async (type: 'image' | 'video') => {
     if (!confirm(`确定要清空所有${type === 'image' ? '图片' : '视频'}作品吗？此操作不可恢复！`)) return;
     if (!confirm('再次确认：所有作品数据将被永久删除！')) return;
@@ -293,7 +433,6 @@ export default function AdminPage() {
     sessionStorage.removeItem('adminLoggedIn');
   };
 
-  // 图片上传处理
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -311,7 +450,6 @@ export default function AdminPage() {
     }
   };
 
-  // 缩略图上传处理
   const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -329,7 +467,6 @@ export default function AdminPage() {
     }
   };
 
-  // 视频文件上传处理
   const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -337,8 +474,7 @@ export default function AdminPage() {
         alert('请上传视频文件');
         return;
       }
-      // 检查文件大小（限制为50MB）
-      const maxSize = 50 * 1024 * 1024; // 50MB
+      const maxSize = 50 * 1024 * 1024;
       if (file.size > maxSize) {
         alert('视频文件太大，请上传小于50MB的视频');
         return;
@@ -362,7 +498,6 @@ export default function AdminPage() {
     video.playsInline = true;
 
     video.onloadedmetadata = () => {
-      // 跳到视频中间位置截图，避免黑屏开头
       video.currentTime = Math.min(video.duration / 2, 1);
     };
 
@@ -379,7 +514,6 @@ export default function AdminPage() {
         setVideoThumbnailPreview(thumbnailDataUrl);
         setVideoForm(prev => ({ ...prev, thumbnail: thumbnailDataUrl }));
       }
-      // 清理
       URL.revokeObjectURL(video.src);
     };
 
@@ -388,7 +522,6 @@ export default function AdminPage() {
     };
   };
 
-  // 图片作品提交
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
@@ -425,7 +558,6 @@ export default function AdminPage() {
     }
   };
 
-  // 视频作品提交
   const handleVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
@@ -464,7 +596,6 @@ export default function AdminPage() {
     }
   };
 
-  // 删除图片作品
   const handleDeleteArtwork = async (id: string) => {
     if (!confirm('确定要删除这个作品吗？')) return;
     try {
@@ -476,7 +607,6 @@ export default function AdminPage() {
     }
   };
 
-  // 删除视频作品
   const handleDeleteVideo = async (id: string) => {
     if (!confirm('确定要删除这个视频吗？')) return;
     try {
@@ -488,7 +618,6 @@ export default function AdminPage() {
     }
   };
 
-  // 技能管理
   const handleSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -523,7 +652,6 @@ export default function AdminPage() {
     }
   };
 
-  // 时间线管理
   const handleTimelineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -558,7 +686,6 @@ export default function AdminPage() {
     }
   };
 
-  // 统计管理
   const handleStatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -593,7 +720,6 @@ export default function AdminPage() {
     }
   };
 
-  // 社交链接管理
   const handleSocialLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -628,7 +754,6 @@ export default function AdminPage() {
     }
   };
 
-  // 网站配置管理
   const handleConfigSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -643,71 +768,121 @@ export default function AdminPage() {
     }
   };
 
+  // ============= 登录页面 =============
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-background bg-grid flex items-center justify-center py-12 px-4">
+      <div
+        className="min-h-screen flex items-center justify-center py-12 px-4"
+        style={{
+          background: 'linear-gradient(180deg, #0A0812 0%, #120F1F 50%, #1A1628 100%)',
+          backgroundAttachment: 'fixed',
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass rounded-3xl p-8 w-full max-w-md"
+          className="p-8 w-full max-w-md"
+          style={THEME.card}
         >
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4"
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={THEME.gradientBtn}
             >
               <Icons.Lock className="w-8 h-8 text-white" />
             </motion.div>
-            <h1 className="text-2xl font-bold text-gradient-moli">墨璃 - 管理后台</h1>
-            <p className="text-foreground-subtle mt-2">请输入管理员密码</p>
+            <h1
+              className="text-2xl font-bold mb-2"
+              style={{
+                background: 'linear-gradient(135deg, #A991FF 0%, #7865F8 50%, #ECE7FF 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                color: 'transparent',
+                fontFamily: "'Smiley Sans', sans-serif",
+              }}
+            >
+              墨璃 - 管理后台
+            </h1>
+            <p style={{ color: THEME.text.muted }}>请输入管理员密码</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-foreground-muted mb-2">密码</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: THEME.text.secondary }}>
+                密码
+              </label>
               <div className="relative">
-                <input
+                <ThemedInput
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground placeholder:text-foreground-dim"
                   placeholder="请输入密码"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary-light"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: THEME.text.muted }}
                 >
                   {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {loginError && <p className="text-red-400 text-sm mt-2">{loginError}</p>}
+              {loginError && (
+                <p className="text-sm mt-2" style={{ color: '#FF6B7A' }}>
+                  {loginError}
+                </p>
+              )}
             </div>
-            <motion.button
-              type="submit"
-              className="w-full gradient-btn py-4 rounded-xl font-medium text-lg shadow-lg"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+            <ThemedButton type="submit" fullWidth variant="gradient">
               登录
-            </motion.button>
+            </ThemedButton>
           </form>
-          <p className="text-center text-sm text-foreground-dim mt-6">密码：ai@studio2024</p>
+          {/* 已移除底部密码提示 */}
         </motion.div>
       </div>
     );
   }
 
+  // ============= 主后台界面 =============
   return (
-    <div className="min-h-screen bg-background">
-      <div className="glass border-b border-border sticky top-0 z-50">
+    <div
+      className="min-h-screen"
+      style={{
+        background: 'linear-gradient(180deg, #0A0812 0%, #120F1F 50%, #1A1628 100%)',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* 顶部导航栏 */}
+      <div
+        className="sticky top-0 z-50"
+        style={{
+          background: 'rgba(13, 10, 24, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(120, 101, 248, 0.15)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <h1 className="text-xl font-bold text-gradient-moli">墨璃 · MOLI - 管理后台</h1>
-              <nav className="flex gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-6 flex-wrap">
+              <h1
+                className="text-xl font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #A991FF 0%, #7865F8 50%, #ECE7FF 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  fontFamily: "'Smiley Sans', sans-serif",
+                }}
+              >
+                墨璃 · MOLI - 管理后台
+              </h1>
+              <nav className="flex gap-2 flex-wrap">
                 {[
                   { key: 'works', label: '作品管理', icon: Icons.Image },
                   { key: 'about', label: '关于页面', icon: Icons.User },
@@ -717,11 +892,14 @@ export default function AdminPage() {
                   <button
                     key={tab.key}
                     onClick={() => setMainTab(tab.key as MainTab)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                    style={
                       mainTab === tab.key
-                        ? 'gradient-btn text-white'
-                        : 'hover:bg-background-card text-foreground-muted hover:text-primary-light'
-                    }`}
+                        ? THEME.gradientBtn
+                        : {
+                            ...THEME.ghostBtn,
+                          }
+                    }
                   >
                     <tab.icon className="w-4 h-4" />
                     {tab.label}
@@ -729,16 +907,17 @@ export default function AdminPage() {
                 ))}
               </nav>
             </div>
-            <div className="flex items-center gap-4">
-              <a href="/" className="text-gray-500 hover:text-primary transition-colors">返回首页</a>
-              <motion.button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+            <div className="flex items-center gap-3">
+              <a
+                href="/"
+                className="text-sm transition-colors"
+                style={{ color: THEME.text.muted }}
               >
+                返回首页
+              </a>
+              <ThemedButton onClick={handleLogout} variant="ghost">
                 退出登录
-              </motion.button>
+              </ThemedButton>
             </div>
           </div>
         </div>
@@ -749,36 +928,34 @@ export default function AdminPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-green-100 text-green-700 rounded-xl text-center"
+            className="mb-6 p-4 rounded-xl text-center"
+            style={{
+              background: 'rgba(82, 196, 26, 0.15)',
+              border: '1px solid rgba(82, 196, 26, 0.3)',
+              color: '#A6E89B',
+            }}
           >
             操作成功！
           </motion.div>
         )}
 
-        {/* 作品管理 */}
+        {/* ============ 作品管理 ============ */}
         {mainTab === 'works' && (
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* 上传表单 */}
             <div className="lg:col-span-1">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-3xl shadow-lg p-6"
-              >
+              <ThemedCard initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                 <div className="flex gap-2 mb-6">
                   <button
                     onClick={() => setWorksTab('image')}
-                    className={`flex-1 py-2 rounded-lg font-medium ${
-                      worksTab === 'image' ? 'gradient-btn text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    className="flex-1 py-2 rounded-lg font-medium transition-all"
+                    style={worksTab === 'image' ? THEME.gradientBtn : THEME.ghostBtn}
                   >
                     图片作品
                   </button>
                   <button
                     onClick={() => setWorksTab('video')}
-                    className={`flex-1 py-2 rounded-lg font-medium ${
-                      worksTab === 'video' ? 'gradient-btn text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    className="flex-1 py-2 rounded-lg font-medium transition-all"
+                    style={worksTab === 'video' ? THEME.gradientBtn : THEME.ghostBtn}
                   >
                     视频作品
                   </button>
@@ -786,50 +963,57 @@ export default function AdminPage() {
 
                 {worksTab === 'image' && (
                   <form onSubmit={handleImageSubmit} className="space-y-4">
-                    <input
+                    <ThemedInput
                       type="text"
                       value={imageForm.title}
                       onChange={(e) => setImageForm({ ...imageForm, title: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="作品标题"
                       required
                     />
                     <div className="space-y-2">
-                      <select
+                      <ThemedSelect
                         value={imageForm.category}
                         onChange={(e) => setImageForm({ ...imageForm, category: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground"
                       >
                         {imageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </select>
-                      {/* 分类管理 */}
-                      <div className="border border-border rounded-xl p-3 space-y-2">
-                        <p className="text-sm font-medium text-foreground-muted">管理图片分类标签</p>
+                      </ThemedSelect>
+                      <div
+                        className="rounded-xl p-3 space-y-2"
+                        style={{
+                          border: '1px solid rgba(120, 101, 248, 0.15)',
+                          background: 'rgba(13, 10, 24, 0.4)',
+                        }}
+                      >
+                        <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
+                          管理图片分类标签
+                        </p>
                         <div className="flex gap-2">
-                          <input
+                          <ThemedInput
                             type="text"
                             value={newImageCategory}
                             onChange={(e) => setNewImageCategory(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm text-foreground placeholder:text-foreground-dim"
                             placeholder="新分类名称"
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageCategory(); } }}
                           />
-                          <button
-                            type="button"
-                            onClick={handleAddImageCategory}
-                            className="px-3 py-2 gradient-btn text-white rounded-lg text-sm"
-                          >
+                          <ThemedButton onClick={handleAddImageCategory} variant="gradient">
                             添加
-                          </button>
+                          </ThemedButton>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {imageCategories.map(cat => (
-                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary-light rounded-full text-xs">
+                            <span
+                              key={cat}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                              style={{
+                                background: 'rgba(120, 101, 248, 0.15)',
+                                color: '#A991FF',
+                              }}
+                            >
                               {cat}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteImageCategory(cat)}
-                                className="hover:bg-primary/20 rounded-full p-0.5"
+                                className="rounded-full p-0.5 hover:bg-purple-500/20"
                               >
                                 <Icons.X className="w-3 h-3" />
                               </button>
@@ -838,26 +1022,29 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </div>
-                    <input
+                    <ThemedInput
                       type="text"
                       value={imageForm.tags}
                       onChange={(e) => setImageForm({ ...imageForm, tags: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="标签（逗号分隔）"
                     />
-                    <input
+                    <ThemedInput
                       type="date"
                       value={imageForm.date}
                       onChange={(e) => setImageForm({ ...imageForm, date: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground"
                     />
                     <div
-                      className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
+                      className="w-full border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
+                      style={{
+                        borderColor: 'rgba(120, 101, 248, 0.25)',
+                      }}
                       onClick={() => document.getElementById('image-upload')?.click()}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#7865F8')}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(120, 101, 248, 0.25)')}
                     >
                       <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      <Icons.Upload className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm text-foreground-muted">上传图片</p>
+                      <Icons.Upload className="w-8 h-8 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                      <p className="text-sm" style={{ color: THEME.text.muted }}>上传图片</p>
                     </div>
                     {imagePreview && (
                       <div className="relative rounded-xl overflow-hidden">
@@ -865,70 +1052,76 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => { setImageForm({ ...imageForm, image: '' }); setImagePreview(null); }}
-                          className="absolute top-2 right-2 w-8 h-8 glass rounded-full flex items-center justify-center text-foreground"
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{
+                            background: 'rgba(13, 10, 24, 0.85)',
+                            color: '#ECE7FF',
+                            border: '1px solid rgba(120, 101, 248, 0.3)',
+                          }}
                         >
                           <Icons.X className="w-4 h-4" />
                         </button>
                       </div>
                     )}
-                    <motion.button
-                      type="submit"
-                      disabled={!imageForm.image || uploading}
-                      className="w-full gradient-btn py-3 rounded-xl font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
+                    <ThemedButton type="submit" disabled={!imageForm.image || uploading} fullWidth variant="gradient">
                       {uploading ? '上传中...' : '上传图片'}
-                    </motion.button>
+                    </ThemedButton>
                   </form>
                 )}
 
                 {worksTab === 'video' && (
                   <form onSubmit={handleVideoSubmit} className="space-y-4">
-                    <input
+                    <ThemedInput
                       type="text"
                       value={videoForm.title}
                       onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="视频标题"
                       required
                     />
                     <div className="space-y-2">
-                      <select
+                      <ThemedSelect
                         value={videoForm.category}
                         onChange={(e) => setVideoForm({ ...videoForm, category: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       >
                         {videoCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </select>
-                      {/* 视频分类管理 */}
-                      <div className="border border-primary/20 rounded-xl p-3 space-y-2">
-                        <p className="text-sm font-medium text-gray-700">管理视频分类标签</p>
+                      </ThemedSelect>
+                      <div
+                        className="rounded-xl p-3 space-y-2"
+                        style={{
+                          border: '1px solid rgba(120, 101, 248, 0.15)',
+                          background: 'rgba(13, 10, 24, 0.4)',
+                        }}
+                      >
+                        <p className="text-sm font-medium" style={{ color: THEME.text.secondary }}>
+                          管理视频分类标签
+                        </p>
                         <div className="flex gap-2">
-                          <input
+                          <ThemedInput
                             type="text"
                             value={newVideoCategory}
                             onChange={(e) => setNewVideoCategory(e.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                             placeholder="新分类名称"
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideoCategory(); } }}
                           />
-                          <button
-                            type="button"
-                            onClick={handleAddVideoCategory}
-                            className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
-                          >
+                          <ThemedButton onClick={handleAddVideoCategory} variant="gradient">
                             添加
-                          </button>
+                          </ThemedButton>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {videoCategories.map(cat => (
-                            <span key={cat} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary-light rounded-full text-xs">
+                            <span
+                              key={cat}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                              style={{
+                                background: 'rgba(120, 101, 248, 0.15)',
+                                color: '#A991FF',
+                              }}
+                            >
                               {cat}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteVideoCategory(cat)}
-                                className="hover:bg-primary/20 rounded-full p-0.5"
+                                className="rounded-full p-0.5 hover:bg-purple-500/20"
                               >
                                 <Icons.X className="w-3 h-3" />
                               </button>
@@ -937,27 +1130,30 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </div>
-                    <textarea
+                    <ThemedTextarea
                       value={videoForm.description}
                       onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim resize-none"
                       placeholder="视频描述"
                       rows={2}
                     />
-                    <input
+                    <ThemedInput
                       type="text"
                       value={videoForm.duration}
                       onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="时长"
                     />
                     <div
-                      className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40"
+                      className="w-full border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
+                      style={{
+                        borderColor: 'rgba(120, 101, 248, 0.25)',
+                      }}
                       onClick={() => document.getElementById('video-file-upload')?.click()}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#7865F8')}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(120, 101, 248, 0.25)')}
                     >
                       <input id="video-file-upload" type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
-                      <Icons.Video className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm text-foreground-muted">上传视频文件</p>
+                      <Icons.Video className="w-8 h-8 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                      <p className="text-sm" style={{ color: THEME.text.muted }}>上传视频文件</p>
                     </div>
                     {videoPreview && (
                       <div className="relative rounded-xl overflow-hidden">
@@ -965,48 +1161,52 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => { setVideoForm({ ...videoForm, videoFile: '', thumbnail: '' }); setVideoPreview(null); setVideoThumbnailPreview(null); }}
-                          className="absolute top-2 right-2 w-8 h-8 glass rounded-full flex items-center justify-center text-foreground"
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{
+                            background: 'rgba(13, 10, 24, 0.85)',
+                            color: '#ECE7FF',
+                            border: '1px solid rgba(120, 101, 248, 0.3)',
+                          }}
                         >
                           <Icons.X className="w-4 h-4" />
                         </button>
                       </div>
                     )}
-                    <input
+                    <ThemedInput
                       type="url"
                       value={videoForm.url}
                       onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-background-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground placeholder:text-foreground-dim"
                       placeholder="YouTube链接（可选）"
                     />
-                    <motion.button
+                    <ThemedButton
                       type="submit"
                       disabled={(!videoForm.thumbnail || (!videoForm.videoFile && !videoForm.url)) || uploading}
-                      className="w-full gradient-btn py-3 rounded-xl font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      fullWidth
+                      variant="gradient"
                     >
                       {uploading ? '上传中...' : '上传视频'}
-                    </motion.button>
+                    </ThemedButton>
                   </form>
                 )}
-              </motion.div>
+              </ThemedCard>
             </div>
 
             {/* 作品列表 */}
             <div className="lg:col-span-2">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="card-moli p-6"
-              >
+              <ThemedCard initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-foreground">
+                  <h3 className="text-lg font-bold" style={{ color: THEME.text.primary }}>
                     {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : `视频作品 (${userVideos.length})`}
                   </h3>
                   <button
                     type="button"
                     onClick={() => handleClearAllWorks(worksTab)}
-                    className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/20 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                    style={{
+                      background: 'rgba(255, 77, 79, 0.12)',
+                      color: '#FF7878',
+                      border: '1px solid rgba(255, 77, 79, 0.25)',
+                    }}
                   >
                     <Icons.Trash2 className="w-3.5 h-3.5" />
                     清空所有
@@ -1014,7 +1214,7 @@ export default function AdminPage() {
                 </div>
                 {worksTab === 'image' ? (
                   userArtworks.length === 0 ? (
-                    <p className="text-center text-foreground-subtle py-8">暂无图片作品</p>
+                    <p className="text-center py-8" style={{ color: THEME.text.muted }}>暂无图片作品</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       {userArtworks.map(artwork => (
@@ -1023,17 +1223,22 @@ export default function AdminPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="relative rounded-xl overflow-hidden group"
+                          style={{ border: '1px solid rgba(120, 101, 248, 0.15)' }}
                         >
                           <img src={artwork.image} alt={artwork.title} className="w-full h-32 object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <button
                               onClick={() => handleDeleteArtwork(artwork.id)}
-                              className="p-2 bg-red-500 rounded-full text-white"
+                              className="p-2 rounded-full"
+                              style={{ background: '#FF4D4F', color: '#fff' }}
                             >
                               <Icons.Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                          <div
+                            className="absolute bottom-0 left-0 right-0 p-2"
+                            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}
+                          >
                             <p className="text-white text-sm truncate">{artwork.title}</p>
                           </div>
                         </motion.div>
@@ -1042,7 +1247,7 @@ export default function AdminPage() {
                   )
                 ) : (
                   userVideos.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">暂无视频作品</p>
+                    <p className="text-center py-8" style={{ color: THEME.text.muted }}>暂无视频作品</p>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       {userVideos.map(video => (
@@ -1051,17 +1256,22 @@ export default function AdminPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="relative rounded-xl overflow-hidden group"
+                          style={{ border: '1px solid rgba(120, 101, 248, 0.15)' }}
                         >
                           <img src={video.thumbnail} alt={video.title} className="w-full h-32 object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
-                              className="p-2 bg-red-500 rounded-full text-white"
+                              className="p-2 rounded-full"
+                              style={{ background: '#FF4D4F', color: '#fff' }}
                             >
                               <Icons.Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                          <div
+                            className="absolute bottom-0 left-0 right-0 p-2"
+                            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)' }}
+                          >
                             <p className="text-white text-sm truncate">{video.title}</p>
                           </div>
                         </motion.div>
@@ -1069,21 +1279,16 @@ export default function AdminPage() {
                     </div>
                   )
                 )}
-              </motion.div>
+              </ThemedCard>
             </div>
           </div>
         )}
 
-        {/* 关于页面管理 */}
+        {/* ============ 关于页面管理 ============ */}
         {mainTab === 'about' && (
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* 表单区域 */}
             <div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-3xl shadow-lg p-6"
-              >
+              <ThemedCard initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                 <div className="flex gap-2 mb-6">
                   {[
                     { key: 'skills', label: '技能' },
@@ -1093,9 +1298,8 @@ export default function AdminPage() {
                     <button
                       key={tab.key}
                       onClick={() => { setAboutTab(tab.key as AboutTab); setEditingSkill(null); setEditingTimeline(null); setEditingStat(null); }}
-                      className={`flex-1 py-2 rounded-lg font-medium ${
-                        aboutTab === tab.key ? 'gradient-btn text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
+                      className="flex-1 py-2 rounded-lg font-medium transition-all"
+                      style={aboutTab === tab.key ? THEME.gradientBtn : THEME.ghostBtn}
                     >
                       {tab.label}
                     </button>
@@ -1104,151 +1308,141 @@ export default function AdminPage() {
 
                 {aboutTab === 'skills' && (
                   <form onSubmit={handleSkillSubmit} className="space-y-4">
-                    <input
+                    <ThemedInput
                       type="text"
                       value={skillForm.name}
                       onChange={(e) => setSkillForm({ ...skillForm, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="技能名称"
                       required
                     />
-                    <input
+                    <ThemedInput
                       type="number"
                       min="0"
                       max="100"
                       value={skillForm.level}
                       onChange={(e) => setSkillForm({ ...skillForm, level: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="熟练度 (0-100)"
                       required
                     />
-                    <motion.button
-                      type="submit"
-                      className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
+                    <ThemedButton type="submit" fullWidth variant="gradient">
                       {editingSkill ? '更新技能' : '添加技能'}
-                    </motion.button>
+                    </ThemedButton>
                   </form>
                 )}
 
                 {aboutTab === 'timeline' && (
                   <form onSubmit={handleTimelineSubmit} className="space-y-4">
-                    <input
+                    <ThemedInput
                       type="text"
                       value={timelineForm.year}
                       onChange={(e) => setTimelineForm({ ...timelineForm, year: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="年份"
                       required
                     />
-                    <input
+                    <ThemedInput
                       type="text"
                       value={timelineForm.title}
                       onChange={(e) => setTimelineForm({ ...timelineForm, title: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="标题"
                       required
                     />
-                    <textarea
+                    <ThemedTextarea
                       value={timelineForm.description}
                       onChange={(e) => setTimelineForm({ ...timelineForm, description: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="描述"
                       rows={3}
                     />
-                    <motion.button
-                      type="submit"
-                      className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
+                    <ThemedButton type="submit" fullWidth variant="gradient">
                       {editingTimeline ? '更新时间线' : '添加时间线'}
-                    </motion.button>
+                    </ThemedButton>
                   </form>
                 )}
 
                 {aboutTab === 'stats' && (
                   <form onSubmit={handleStatSubmit} className="space-y-4">
-                    <input
+                    <ThemedInput
                       type="number"
                       value={statForm.value}
                       onChange={(e) => setStatForm({ ...statForm, value: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="数值"
                       required
                     />
-                    <input
+                    <ThemedInput
                       type="text"
                       value={statForm.label}
                       onChange={(e) => setStatForm({ ...statForm, label: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="标签"
                       required
                     />
-                    <input
+                    <ThemedInput
                       type="text"
                       value={statForm.suffix}
                       onChange={(e) => setStatForm({ ...statForm, suffix: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                       placeholder="后缀（如：+、小时）"
                     />
-                    <motion.button
-                      type="submit"
-                      className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
+                    <ThemedButton type="submit" fullWidth variant="gradient">
                       {editingStat ? '更新统计' : '添加统计'}
-                    </motion.button>
+                    </ThemedButton>
                   </form>
                 )}
-              </motion.div>
+              </ThemedCard>
             </div>
 
-            {/* 列表区域 */}
             <div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-3xl shadow-lg p-6"
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  {aboutTab === 'skills' ? `技能列表 (${skills.length})` : 
-                   aboutTab === 'timeline' ? `时间线 (${timeline.length})` : 
-                   `统计数据 (${stats.length})`}
+              <ThemedCard initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                <h3 className="text-lg font-bold mb-4" style={{ color: THEME.text.primary }}>
+                  {aboutTab === 'skills' ? `技能列表 (${skills.length})` :
+                    aboutTab === 'timeline' ? `时间线 (${timeline.length})` :
+                      `统计数据 (${stats.length})`}
                 </h3>
 
                 {aboutTab === 'skills' && (
                   <div className="space-y-3">
                     {skills.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">暂无技能</p>
+                      <p className="text-center py-8" style={{ color: THEME.text.muted }}>暂无技能</p>
                     ) : (
                       skills.map(skill => (
                         <motion.div
                           key={skill.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl"
+                          className="flex items-center gap-4 p-3 rounded-xl"
+                          style={{
+                            background: 'rgba(13, 10, 24, 0.4)',
+                            border: '1px solid rgba(120, 101, 248, 0.1)',
+                          }}
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-gray-800">{skill.name}</p>
-                            <div className="h-2 bg-gray-200 rounded-full mt-1">
+                            <p className="font-medium" style={{ color: THEME.text.primary }}>{skill.name}</p>
+                            <div
+                              className="h-2 rounded-full mt-1 overflow-hidden"
+                              style={{ background: 'rgba(120, 101, 248, 0.1)' }}
+                            >
                               <motion.div
-                                className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+                                className="h-full rounded-full"
+                                style={{
+                                  background: 'linear-gradient(90deg, #7865F8 0%, #A991FF 100%)',
+                                }}
                                 initial={{ width: 0 }}
                                 animate={{ width: `${skill.level}%` }}
                                 transition={{ duration: 0.5 }}
                               />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">{skill.level}%</p>
+                            <p className="text-xs mt-1" style={{ color: THEME.text.dim }}>{skill.level}%</p>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => handleEditSkill(skill)} className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg">
+                            <button
+                              onClick={() => handleEditSkill(skill)}
+                              className="p-2 rounded-lg transition-colors"
+                              style={{ color: '#8AB4FF' }}
+                            >
                               <Icons.Edit className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleDeleteSkill(skill.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <button
+                              onClick={() => handleDeleteSkill(skill.id)}
+                              className="p-2 rounded-lg transition-colors"
+                              style={{ color: '#FF7878' }}
+                            >
                               <Icons.Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -1261,28 +1455,51 @@ export default function AdminPage() {
                 {aboutTab === 'timeline' && (
                   <div className="space-y-3">
                     {timeline.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">暂无时间线</p>
+                      <p className="text-center py-8" style={{ color: THEME.text.muted }}>暂无时间线</p>
                     ) : (
                       timeline.map(item => (
                         <motion.div
                           key={item.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 bg-gray-50 rounded-xl"
+                          className="p-4 rounded-xl"
+                          style={{
+                            background: 'rgba(13, 10, 24, 0.4)',
+                            border: '1px solid rgba(120, 101, 248, 0.1)',
+                          }}
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <span className="text-2xl font-bold gradient-text">{item.year}</span>
+                            <span
+                              className="text-2xl font-bold"
+                              style={{
+                                background: 'linear-gradient(135deg, #A991FF 0%, #7865F8 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                                color: 'transparent',
+                              }}
+                            >
+                              {item.year}
+                            </span>
                             <div className="flex gap-2">
-                              <button onClick={() => handleEditTimeline(item)} className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg">
+                              <button
+                                onClick={() => handleEditTimeline(item)}
+                                className="p-2 rounded-lg transition-colors"
+                                style={{ color: '#8AB4FF' }}
+                              >
                                 <Icons.Edit className="w-4 h-4" />
                               </button>
-                              <button onClick={() => handleDeleteTimeline(item.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                              <button
+                                onClick={() => handleDeleteTimeline(item.id)}
+                                className="p-2 rounded-lg transition-colors"
+                                style={{ color: '#FF7878' }}
+                              >
                                 <Icons.Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
-                          <h4 className="font-medium text-gray-800">{item.title}</h4>
-                          <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                          <h4 className="font-medium" style={{ color: THEME.text.primary }}>{item.title}</h4>
+                          <p className="text-sm mt-1" style={{ color: THEME.text.muted }}>{item.description}</p>
                         </motion.div>
                       ))
                     )}
@@ -1292,87 +1509,98 @@ export default function AdminPage() {
                 {aboutTab === 'stats' && (
                   <div className="grid grid-cols-2 gap-3">
                     {stats.length === 0 ? (
-                      <p className="col-span-2 text-center text-gray-500 py-8">暂无统计数据</p>
+                      <p className="col-span-2 text-center py-8" style={{ color: THEME.text.muted }}>暂无统计数据</p>
                     ) : (
                       stats.map(stat => (
                         <motion.div
                           key={stat.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl text-center relative group"
+                          className="p-4 rounded-xl text-center relative group"
+                          style={{
+                            background: 'rgba(120, 101, 248, 0.08)',
+                            border: '1px solid rgba(120, 101, 248, 0.15)',
+                          }}
                         >
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <button onClick={() => handleEditStat(stat)} className="p-1 text-blue-500 hover:bg-blue-100 rounded">
+                            <button
+                              onClick={() => handleEditStat(stat)}
+                              className="p-1 rounded transition-colors"
+                              style={{ color: '#8AB4FF' }}
+                            >
                               <Icons.Edit className="w-3 h-3" />
                             </button>
-                            <button onClick={() => handleDeleteStat(stat.id)} className="p-1 text-red-500 hover:bg-red-100 rounded">
+                            <button
+                              onClick={() => handleDeleteStat(stat.id)}
+                              className="p-1 rounded transition-colors"
+                              style={{ color: '#FF7878' }}
+                            >
                               <Icons.Trash2 className="w-3 h-3" />
                             </button>
                           </div>
-                          <p className="text-2xl font-bold gradient-text">{stat.value}{stat.suffix}</p>
-                          <p className="text-sm text-gray-600 mt-1">{stat.label}</p>
+                          <p
+                            className="text-2xl font-bold"
+                            style={{
+                              background: 'linear-gradient(135deg, #A991FF 0%, #7865F8 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                              color: 'transparent',
+                            }}
+                          >
+                            {stat.value}{stat.suffix}
+                          </p>
+                          <p className="text-sm mt-1" style={{ color: THEME.text.muted }}>{stat.label}</p>
                         </motion.div>
                       ))
                     )}
                   </div>
                 )}
-              </motion.div>
+              </ThemedCard>
             </div>
           </div>
         )}
 
-        {/* 社交链接管理 */}
+        {/* ============ 社交链接管理 ============ */}
         {mainTab === 'social' && (
           <div className="grid lg:grid-cols-2 gap-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-3xl shadow-lg p-6"
-            >
-              <h3 className="text-lg font-bold text-gray-800 mb-4">添加社交链接</h3>
+            <ThemedCard initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+              <h3 className="text-lg font-bold mb-4" style={{ color: THEME.text.primary }}>
+                添加社交链接
+              </h3>
               <form onSubmit={handleSocialLinkSubmit} className="space-y-4">
-                <input
+                <ThemedInput
                   type="text"
                   value={socialLinkForm.name}
                   onChange={(e) => setSocialLinkForm({ ...socialLinkForm, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="名称（如：微信、B站）"
                   required
                 />
-                <select
+                <ThemedSelect
                   value={socialLinkForm.icon}
                   onChange={(e) => setSocialLinkForm({ ...socialLinkForm, icon: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                 >
                   {iconOptions.map(icon => <option key={icon} value={icon}>{icon}</option>)}
-                </select>
-                <input
+                </ThemedSelect>
+                <ThemedInput
                   type="url"
                   value={socialLinkForm.url}
                   onChange={(e) => setSocialLinkForm({ ...socialLinkForm, url: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="链接地址"
                   required
                 />
-                <motion.button
-                  type="submit"
-                  className="w-full gradient-btn text-white py-3 rounded-xl font-medium"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <ThemedButton type="submit" fullWidth variant="gradient">
                   {editingSocialLink ? '更新链接' : '添加链接'}
-                </motion.button>
+                </ThemedButton>
               </form>
-            </motion.div>
+            </ThemedCard>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-3xl shadow-lg p-6"
-            >
-              <h3 className="text-lg font-bold text-gray-800 mb-4">社交链接列表 ({socialLinks.length})</h3>
+            <ThemedCard initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+              <h3 className="text-lg font-bold mb-4" style={{ color: THEME.text.primary }}>
+                社交链接列表 ({socialLinks.length})
+              </h3>
               {socialLinks.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">暂无社交链接</p>
+                <p className="text-center py-8" style={{ color: THEME.text.muted }}>暂无社交链接</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {socialLinks.map(link => (
@@ -1380,118 +1608,118 @@ export default function AdminPage() {
                       key={link.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-gray-50 rounded-xl relative group"
+                      className="p-4 rounded-xl relative group"
+                      style={{
+                        background: 'rgba(13, 10, 24, 0.4)',
+                        border: '1px solid rgba(120, 101, 248, 0.1)',
+                      }}
                     >
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button onClick={() => handleEditSocialLink(link)} className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg">
+                        <button
+                          onClick={() => handleEditSocialLink(link)}
+                          className="p-2 rounded-lg"
+                          style={{ color: '#8AB4FF' }}
+                        >
                           <Icons.Edit className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteSocialLink(link.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                        <button
+                          onClick={() => handleDeleteSocialLink(link.id)}
+                          className="p-2 rounded-lg"
+                          style={{ color: '#FF7878' }}
+                        >
                           <Icons.Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{
+                            background: 'linear-gradient(135deg, #7865F8 0%, #A991FF 100%)',
+                          }}
+                        >
                           {getIcon(link.icon)}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{link.name}</p>
-                          <p className="text-sm text-gray-500 truncate">{link.url}</p>
+                          <p className="font-medium" style={{ color: THEME.text.primary }}>{link.name}</p>
+                          <p className="text-sm truncate" style={{ color: THEME.text.muted }}>{link.url}</p>
                         </div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               )}
-            </motion.div>
+            </ThemedCard>
           </div>
         )}
 
-        {/* 网站配置管理 */}
+        {/* ============ 网站配置管理 ============ */}
         {mainTab === 'config' && siteConfig && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl shadow-lg p-6"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-6">网站配置</h3>
+          <ThemedCard initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <h3 className="text-lg font-bold mb-6" style={{ color: THEME.text.primary }}>网站配置</h3>
             <form onSubmit={handleConfigSubmit} className="grid lg:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-700">Hero 区域</h4>
-                <input
+                <h4 className="font-medium" style={{ color: THEME.text.secondary }}>Hero 区域</h4>
+                <ThemedInput
                   type="text"
                   value={siteConfig.heroTitle}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, heroTitle: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="网站标题"
                 />
-                <input
+                <ThemedInput
                   type="text"
                   value={siteConfig.heroSubtitle}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, heroSubtitle: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="副标题"
                 />
-                <textarea
+                <ThemedTextarea
                   value={siteConfig.heroDescription}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, heroDescription: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="描述"
                   rows={3}
                 />
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-700">关于区域</h4>
-                <input
+                <h4 className="font-medium" style={{ color: THEME.text.secondary }}>关于区域</h4>
+                <ThemedInput
                   type="text"
                   value={siteConfig.aboutTitle}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, aboutTitle: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="关于标题"
                 />
-                <input
+                <ThemedInput
                   type="text"
                   value={siteConfig.aboutName}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, aboutName: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="姓名"
                 />
-                <textarea
+                <ThemedTextarea
                   value={siteConfig.aboutDescription}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, aboutDescription: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="个人描述"
                   rows={3}
                 />
-                <input
+                <ThemedInput
                   type="text"
                   value={siteConfig.aboutTags}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, aboutTags: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="标签（逗号分隔）"
                 />
-                <input
+                <ThemedInput
                   type="text"
                   value={siteConfig.avatarUrl}
                   onChange={(e) => setSiteConfig(prev => prev ? { ...prev, avatarUrl: e.target.value } : null)}
-                  className="w-full px-4 py-3 rounded-xl border border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="头像链接"
                 />
               </div>
 
               <div className="lg:col-span-2">
-                <motion.button
-                  type="submit"
-                  className="w-full gradient-btn text-white py-4 rounded-xl font-medium text-lg"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <ThemedButton type="submit" fullWidth variant="gradient">
                   保存配置
-                </motion.button>
+                </ThemedButton>
               </div>
             </form>
-          </motion.div>
+          </ThemedCard>
         )}
       </div>
     </div>
