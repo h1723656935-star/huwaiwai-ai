@@ -8,6 +8,7 @@ import Artworks from '@/components/Artworks';
 import Videos from '@/components/Videos';
 import Footer from '@/components/Footer';
 import IntroAnimation from '@/components/IntroAnimation';
+import MoliCharacter from '@/components/MoliCharacter';
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
@@ -76,6 +77,9 @@ export default function App() {
           <Footer />
         </motion.footer>
       </motion.div>
+
+      {/* 「墨璃」看板娘 - 数字看板娘 - 网站视觉核心 */}
+      <MoliCharacter />
     </div>
   );
 }
