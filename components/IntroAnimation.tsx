@@ -231,6 +231,9 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
               filter: 'drop-shadow(0 20px 50px rgba(13,10,24,0.7)) drop-shadow(0 0 80px rgba(94,61,138,0.25))',
             }}
             onLoad={() => setImageLoaded(true)}
+            onError={(e) => {
+              console.error('[墨璃] Loading立绘加载失败，请确认 /public/moli/moli-intro.png 存在');
+            }}
             draggable={false}
           />
 

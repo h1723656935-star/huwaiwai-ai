@@ -192,6 +192,12 @@ export default function MoliCharacter() {
                 filter: 'drop-shadow(0 15px 35px rgba(26,20,38,0.45))',
               }}
               onLoad={() => setImageLoaded(true)}
+              onError={(e) => {
+                // 图片加载失败时显示占位文字（调试用）
+                const target = e.target as HTMLImageElement;
+                console.error('[墨璃] 立绘加载失败，请确认 /public/moli/moli-standby.png 存在');
+                target.style.display = 'none';
+              }}
               draggable={false}
             />
 
