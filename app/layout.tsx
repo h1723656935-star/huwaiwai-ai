@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description: '探索AI绘画与视频创作，探索二次元美学与梦幻表达',
   keywords: ['AI绘画', 'AI视频', '二次元', '数字艺术', 'Midjourney', 'Stable Diffusion'],
   authors: [{ name: '胡歪歪' }],
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({
