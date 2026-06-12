@@ -138,11 +138,25 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     if (artwork.tags && artwork.tags.length > 0) artworkInsert.tags = JSON.stringify(artwork.tags);
     if (artwork.date) artworkInsert.date = artwork.date;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('artworks')
       .insert([artworkInsert])
       .select()
       .single();
+
+    // 如果是 categories 列不存在的错误，降级只用 category 重试
+    if (error && (error.message?.includes('categories') || error.code === 'PGRST204')) {
+      console.warn('categories column missing, falling back to category only');
+      const fallbackInsert = { ...artworkInsert };
+      delete fallbackInsert.categories;
+      const retry = await supabase
+        .from('artworks')
+        .insert([fallbackInsert])
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     
     if (error) {
       console.error('Error creating artwork:', error);
@@ -189,12 +203,27 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
     if (artwork.date !== undefined) updateData.date = artwork.date;
     if (artwork.image !== undefined) updateData.image = artwork.image;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('artworks')
       .update(updateData)
       .eq('id', id)
       .select()
       .single();
+
+    // 如果是 categories 列不存在的错误，降级只用 category 重试
+    if (error && (error.message?.includes('categories') || error.code === 'PGRST204')) {
+      console.warn('categories column missing, falling back to category only');
+      const fallbackUpdate = { ...updateData };
+      delete fallbackUpdate.categories;
+      const retry = await supabase
+        .from('artworks')
+        .update(fallbackUpdate)
+        .eq('id', id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     
     if (error) {
       console.error('Error updating artwork:', error);
