@@ -121,6 +121,13 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--secondary);
   }
+
+  /* 隐藏系统光标（仅PC端有自定义光标时） */
+  @media (hover: hover) and (pointer: fine) {
+    *, *::before, *::after {
+      cursor: none !important;
+    }
+  }
 }
 
 /* ====== 动画关键帧 - 移动端优化版 ====== */

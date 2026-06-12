@@ -148,8 +148,8 @@ export default function CustomCursor() {
         className="fixed top-0 left-0 pointer-events-none z-[9999]"
         style={{
           opacity: 0,
-          mixBlendMode: 'difference',
           willChange: 'transform',
+          filter: 'drop-shadow(0 0 8px rgba(120, 101, 248, 0.5))',
         }}
       >
         <svg
@@ -166,9 +166,6 @@ export default function CustomCursor() {
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{
-              filter: 'drop-shadow(0 2px 4px rgba(120,101,248,0.4))',
-            }}
           />
         </svg>
       </div>
