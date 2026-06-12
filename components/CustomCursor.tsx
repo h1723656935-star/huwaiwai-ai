@@ -16,8 +16,8 @@ export default function CustomCursor() {
     let currentY = 0;
 
     const animate = () => {
-      currentX += (targetX - currentX) * 0.15;
-      currentY += (targetY - currentY) * 0.15;
+      currentX += (targetX - currentX) * 0.35;
+      currentY += (targetY - currentY) * 0.35;
       setPosition({ x: currentX, y: currentY });
       rafId = requestAnimationFrame(animate);
     };
