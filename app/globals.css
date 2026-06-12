@@ -2,49 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ====== 字体引入 ====== */
+@font-face {
+  font-family: 'Smiley Sans';
+  src: url('https://fonts.cdnfonts.com/s/35048/SmileySans-Oblique.woff2') format('woff2'),
+       url('https://fonts.cdnfonts.com/s/35048/SmileySans-Oblique.woff') format('woff');
+  font-weight: normal;
+  font-style: oblique;
+}
+
+@font-face {
+  font-family: 'Smiley Sans';
+  src: url('https://fonts.cdnfonts.com/s/35048/SmileySans-Regular.woff2') format('woff2'),
+       url('https://fonts.cdnfonts.com/s/35048/SmileySans-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Smiley Sans';
+  src: url('https://fonts.cdnfonts.com/s/35048/SmileySans-Bold.woff2') format('woff2'),
+       url('https://fonts.cdnfonts.com/s/35048/SmileySans-Bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* ====== 月夜紫晶主题变量 ====== */
 @layer base {
   :root {
-    /* ====== 墨璃配色方案 ====== */
-    /* 背景色系 - 深紫渐变 */
-    --background: #0A0812;
-    --background-light: #120F1F;
-    --background-card: #1A1628;
-    --background-card-hover: #221D35;
+    /* 主色调 - 紫晶色 */
+    --primary: #6F5AEF;
+    --primary-light: #8A76F0;
+    --primary-dark: #5A47D1;
+    --primary-glow: rgba(111, 90, 239, 0.35);
     
-    /* 文字色系 - 银白渐变 */
-    --foreground: #E8DEED;
-    --foreground-muted: #C9B3E0;
-    --foreground-subtle: #8B7FB0;
-    --foreground-dim: #5E3D8A;
+    /* 次色调 - 淡紫 */
+    --secondary: #9D7CFF;
+    --secondary-light: #B39EFF;
+    --secondary-dark: #8566E8;
     
-    /* 主色调 - 紫水晶色系 */
-    --primary: #A78BD9;
-    --primary-light: #C9B3E0;
-    --primary-dark: #7A5BAB;
-    --primary-glow: rgba(167, 139, 217, 0.4);
+    /* 强调色 - 浅紫 */
+    --accent: #C7B8FF;
+    --accent-light: #E0D8FF;
+    --accent-dark: #AE98E6;
     
-    /* 次要色 - 深紫 */
-    --secondary: #5E3D8A;
-    --secondary-light: #7A5BAB;
-    --secondary-dark: #3D2A5C;
+    /* 深色 - 月夜背景 */
+    --dark: #16141F;
+    --dark-light: #1E1C29;
+    --dark-card: #25232E;
     
-    /* 强调色 - 金色 */
-    --accent: #D4AF7A;
-    --accent-light: #E8C896;
-    --accent-dark: #B8954A;
-    --accent-glow: rgba(212, 175, 122, 0.4);
+    /* 浅色背景 */
+    --background: #F7F5FC;
+    --background-light: #FAF9FE;
+    --background-card: #FFFFFF;
+    
+    /* 文字色系 */
+    --foreground: #16141F;
+    --foreground-muted: #4A4755;
+    --foreground-subtle: #7A7785;
+    --foreground-dim: #A09DA8;
     
     /* 边框与分割 */
-    --border: rgba(122, 91, 171, 0.3);
-    --border-light: rgba(167, 139, 217, 0.2);
-    --divider: rgba(212, 175, 122, 0.2);
+    --border: rgba(111, 90, 239, 0.12);
+    --border-light: rgba(111, 90, 239, 0.06);
+    --border-dark: rgba(111, 90, 239, 0.25);
     
-    /* 交互状态 */
-    --hover: rgba(167, 139, 217, 0.15);
-    --active: rgba(167, 139, 217, 0.3);
+    /* 状态色 */
+    --success: #52C41A;
+    --warning: #FAAD14;
+    --error: #FF4D4F;
+    --info: #1890FF;
     
     /* 圆角 */
+    --radius-sm: 0.375rem;
     --radius: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
   }
 
   * {
@@ -54,16 +88,25 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'HarmonyOS Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Smiley Sans', 'HarmonyOS Sans', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
   /* 滚动条样式 */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -71,12 +114,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--secondary);
-    border-radius: 4px;
+    background: var(--accent);
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
+    background: var(--secondary);
   }
 }
 
@@ -89,12 +132,12 @@
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
-  50% { box-shadow: 0 0 40px var(--primary-glow), 0 0 60px var(--accent-glow); }
+  50% { box-shadow: 0 0 40px var(--primary-glow), 0 0 60px rgba(157, 124, 255, 0.2); }
 }
 
 @keyframes shimmer {
@@ -105,7 +148,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -113,31 +156,15 @@
   }
 }
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
-}
-
-@keyframes rotateSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 @keyframes borderFlow {
@@ -146,60 +173,58 @@
   100% { background-position: 0% 50%; }
 }
 
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
 /* ====== 工具类 ====== */
 @layer utilities {
   /* 玻璃态效果 */
   .glass {
-    background: rgba(26, 22, 40, 0.7);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
   }
 
-  .glass-light {
-    background: rgba(34, 29, 53, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--border-light);
+  .glass-dark {
+    background: rgba(22, 20, 31, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* 渐变文字 */
-  .gradient-text {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 50%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .gradient-text-animate {
-    background: linear-gradient(
-      135deg,
-      var(--primary-light) 0%,
-      var(--primary) 25%,
-      var(--accent) 50%,
-      var(--primary) 75%,
-      var(--primary-light) 100%
-    );
+  .gradient-text-moli {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 40%, var(--accent) 80%, var(--secondary) 100%);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: gradientShift 4s ease infinite;
+    animation: gradientShift 6s ease-in-out infinite;
+  }
+
+  .gradient-text-simple {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* 渐变背景 */
   .gradient-bg {
-    background: linear-gradient(135deg, var(--background) 0%, var(--background-light) 50%, var(--background-card) 100%);
+    background: linear-gradient(180deg, var(--background) 0%, var(--background-light) 50%, var(--accent-light) 100%);
   }
 
-  .gradient-bg-header {
-    background: linear-gradient(180deg, var(--background-light) 0%, transparent 100%);
+  .gradient-bg-purple {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
   }
 
   /* 渐变按钮 */
   .gradient-btn {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: var(--foreground);
+    color: white;
     transition: all 0.3s ease;
     border: none;
     font-weight: 500;
@@ -207,7 +232,7 @@
 
   .gradient-btn:hover {
     background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-    box-shadow: 0 0 25px var(--primary-glow);
+    box-shadow: 0 8px 25px var(--primary-glow);
     transform: translateY(-2px);
   }
 
@@ -215,32 +240,18 @@
     transform: translateY(0);
   }
 
-  /* 金色按钮 */
-  .gold-btn {
-    background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
-    color: var(--background);
-    transition: all 0.3s ease;
-    border: none;
-    font-weight: 600;
-  }
-
-  .gold-btn:hover {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-    box-shadow: 0 0 20px var(--accent-glow);
-    transform: translateY(-2px);
-  }
-
-  /* 边框发光效果 */
+  /* 紫色边框发光 */
   .border-glow {
     position: relative;
     border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
   }
 
   .border-glow::before {
     content: '';
     position: absolute;
     inset: -1px;
-    background: linear-gradient(135deg, var(--primary), var(--accent), var(--primary)) border-box;
+    background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent), var(--secondary), var(--primary)) border-box;
     border-radius: inherit;
     z-index: -1;
     opacity: 0;
@@ -248,105 +259,107 @@
   }
 
   .border-glow:hover::before {
-    opacity: 0.5;
-  }
-
-  /* 流光边框 */
-  .border-flow {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid transparent;
-    background: linear-gradient(var(--background-card), var(--background-card)) padding-box,
-                linear-gradient(135deg, var(--primary), var(--accent), var(--primary)) border-box;
+    opacity: 0.4;
   }
 
   /* 悬停上浮效果 */
   .hover-lift {
-    transition: all 0.3s ease;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(94, 61, 138, 0.3);
-  }
-
-  /* 星光效果 */
-  .sparkle {
-    position: relative;
-  }
-
-  .sparkle::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-  }
-
-  .sparkle:hover::before {
-    opacity: 1;
-  }
-
-  /* 动画工具类 */
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-pulse-glow {
-    animation: pulseGlow 2s ease-in-out infinite;
-  }
-
-  .animate-shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--primary-glow) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-  }
-
-  .animate-rotate-slow {
-    animation: rotateSlow 20s linear infinite;
-  }
-
-  .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out forwards;
-  }
-
-  /* 文本样式 */
-  .text-gradient-moli {
-    background: linear-gradient(135deg, #E8DEED 0%, #C9B3E0 35%, #A78BD9 65%, #D4AF7A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(111, 90, 239, 0.15);
   }
 
   /* 卡片样式 */
   .card-moli {
     background: var(--background-card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    transition: all 0.3s ease;
+    border-radius: var(--radius-xl);
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .card-moli:hover {
-    background: var(--background-card-hover);
-    border-color: var(--primary-dark);
-    box-shadow: 0 8px 30px rgba(94, 61, 138, 0.2);
+    border-color: var(--border-dark);
+    box-shadow: 0 12px 35px rgba(111, 90, 239, 0.12);
   }
 
   /* 背景网格 */
   .bg-grid {
     background-image: 
-      linear-gradient(rgba(122, 91, 171, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(122, 91, 171, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
+      linear-gradient(var(--border-light) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* 星空背景 */
+  .bg-stars {
+    background-image: 
+      radial-gradient(2px 2px at 20px 30px, var(--primary), transparent),
+      radial-gradient(2px 2px at 40px 70px, var(--secondary), transparent),
+      radial-gradient(1px 1px at 90px 40px, var(--accent), transparent),
+      radial-gradient(2px 2px at 130px 80px, var(--primary), transparent),
+      radial-gradient(1px 1px at 160px 120px, var(--secondary), transparent);
+    background-size: 200px 200px;
+  }
+
+  /* 动画工具类 */
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(111, 90, 239, 0.15) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  /* 文字样式 */
+  .text-gradient-title {
+    font-family: 'Smiley Sans', sans-serif;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 50%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 月光光晕效果 */
+  .moon-glow {
+    box-shadow: 
+      0 0 30px var(--primary-glow),
+      0 0 60px rgba(157, 124, 255, 0.15),
+      0 0 100px rgba(199, 184, 255, 0.1);
+  }
+
+  /* 优雅阴影 */
+  .elegant-shadow {
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 2px 4px -1px rgba(0, 0, 0, 0.03),
+      0 0 20px rgba(111, 90, 239, 0.04);
+  }
+
+  /* 渐变分割线 */
+  .gradient-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--secondary), var(--accent), transparent);
   }
 }

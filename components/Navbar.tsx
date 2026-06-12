@@ -16,7 +16,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -28,15 +28,15 @@ export default function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'glass shadow-lg' : 'bg-transparent'
+        isScrolled ? 'glass' : 'bg-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           <motion.a
             href="#home"
-            className="text-2xl font-bold text-gradient-moli"
-            whileHover={{ scale: 1.05 }}
+            className="text-2xl font-bold gradient-text-moli tracking-tight"
+            whileHover={{ scale: 1.02 }}
           >
             墨璃 · MOLI
           </motion.a>
@@ -46,7 +46,7 @@ export default function Navbar() {
               <motion.a
                 key={item.label}
                 href={item.href}
-                className="text-foreground-muted hover:text-primary-light transition-colors duration-300 font-medium"
+                className="text-foreground-muted hover:text-primary transition-colors duration-300 font-medium"
                 whileHover={{ y: -2 }}
               >
                 {item.label}
@@ -55,7 +55,7 @@ export default function Navbar() {
           </div>
 
           <button
-            className="md:hidden p-2 text-foreground-muted hover:text-primary-light transition-colors"
+            className="md:hidden p-2 text-foreground-muted hover:text-primary transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -80,9 +80,9 @@ export default function Navbar() {
                 <motion.a
                   key={item.label}
                   href={item.href}
-                  className="block text-foreground-muted hover:text-primary-light transition-colors duration-300 font-medium"
+                  className="block text-foreground-muted hover:text-primary transition-colors duration-300 font-medium"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  whileHover={{ x: 10 }}
+                  whileHover={{ x: 8 }}
                 >
                   {item.label}
                 </motion.a>
