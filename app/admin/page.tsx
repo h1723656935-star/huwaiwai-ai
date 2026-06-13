@@ -588,6 +588,21 @@ export default function AdminPage() {
 
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 前置验证 - 给出清晰提示而不是按钮无反应
+    if (imageForm.categories.length === 0) {
+      alert('⚠️ 请先选择至少一个分类（如：人像、风景、二次元等）');
+      return;
+    }
+    if (!imageForm.title.trim()) {
+      alert('⚠️ 请输入作品标题');
+      return;
+    }
+    if (!imageForm.image) {
+      alert('⚠️ 请上传图片');
+      return;
+    }
+
     setUploading(true);
     try {
       const tagsArray = imageForm.tags.split(',').map(tag => tag.trim()).filter(Boolean);
@@ -1373,7 +1388,7 @@ export default function AdminPage() {
                     )}
                     <ThemedButton
                       type="submit"
-                      disabled={imageForm.categories.length === 0 || uploading}
+                      disabled={uploading}
                       fullWidth
                       variant="gradient"
                     >
