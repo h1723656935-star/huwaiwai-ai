@@ -294,6 +294,8 @@ export default function AdminPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
 
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+
   const [videoForm, setVideoForm] = useState<VideoForm>({
     title: '',
     description: '',
@@ -628,15 +630,26 @@ export default function AdminPage() {
     e.preventDefault();
     setUploading(true);
     try {
-      await worksService.createVideo({
-        title: videoForm.title,
-        description: videoForm.description,
-        duration: videoForm.duration,
-        thumbnail: videoForm.thumbnail,
-        url: videoForm.url,
-        videoFile: videoForm.videoFile || undefined,
-        category: videoForm.category,
-      });
+      if (editingVideo) {
+        await worksService.updateVideo(editingVideo.id, {
+          title: videoForm.title,
+          description: videoForm.description,
+          duration: videoForm.duration,
+          url: videoForm.url,
+          category: videoForm.category,
+        });
+        setEditingVideo(null);
+      } else {
+        await worksService.createVideo({
+          title: videoForm.title,
+          description: videoForm.description,
+          duration: videoForm.duration,
+          thumbnail: videoForm.thumbnail,
+          url: videoForm.url,
+          videoFile: videoForm.videoFile || undefined,
+          category: videoForm.category,
+        });
+      }
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
       setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
@@ -695,8 +708,29 @@ export default function AdminPage() {
 
   const handleCancelEdit = () => {
     setEditingArtwork(null);
+    setEditingVideo(null);
     setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '' });
     setImagePreview(null);
+    setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
+    setVideoThumbnailPreview(null);
+    setVideoPreview(null);
+  };
+
+  const handleEditVideo = (video: Video) => {
+    setEditingVideo(video);
+    setVideoForm({
+      title: video.title,
+      description: video.description || '',
+      duration: video.duration || '00:00',
+      thumbnail: video.thumbnail || '',
+      url: video.url || '',
+      videoFile: video.videoFile || '',
+      category: video.category || '二次元',
+    });
+    setVideoThumbnailPreview(video.thumbnail || null);
+    setVideoPreview(video.videoFile || null);
+    setWorksTab('video');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteVideo = async (id: string) => {
@@ -704,6 +738,12 @@ export default function AdminPage() {
     try {
       await worksService.deleteVideo(id);
       setUserVideos(prev => prev.filter(v => v.id !== id));
+      if (editingVideo?.id === id) {
+        setEditingVideo(null);
+        setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
+        setVideoThumbnailPreview(null);
+        setVideoPreview(null);
+      }
       alert('删除成功！');
     } catch (error) {
       alert('删除失败，请重试');
@@ -1189,6 +1229,27 @@ export default function AdminPage() {
 
                 {worksTab === 'video' && (
                   <form onSubmit={handleVideoSubmit} className="space-y-4">
+                    {editingVideo && (
+                      <div
+                        className="rounded-xl p-3 flex items-center justify-between"
+                        style={{
+                          background: 'rgba(120, 101, 248, 0.15)',
+                          border: '1px solid rgba(120, 101, 248, 0.3)',
+                        }}
+                      >
+                        <span className="text-sm" style={{ color: THEME.text.primary }}>
+                          ✏️ 正在编辑视频：<strong>{editingVideo.title}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="text-xs px-2 py-1 rounded"
+                          style={{ background: 'rgba(255, 77, 79, 0.2)', color: '#FF4D4F' }}
+                        >
+                          取消编辑
+                        </button>
+                      </div>
+                    )}
                     <ThemedInput
                       type="text"
                       value={videoForm.title}
@@ -1298,11 +1359,11 @@ export default function AdminPage() {
                     />
                     <ThemedButton
                       type="submit"
-                      disabled={(!videoForm.thumbnail || (!videoForm.videoFile && !videoForm.url)) || uploading}
+                      disabled={editingVideo ? uploading : ((!videoForm.thumbnail || (!videoForm.videoFile && !videoForm.url)) || uploading)}
                       fullWidth
                       variant="gradient"
                     >
-                      {uploading ? '上传中...' : '上传视频'}
+                      {uploading ? '上传中...' : (editingVideo ? '保存修改' : '上传视频')}
                     </ThemedButton>
                   </form>
                 )}
@@ -1386,11 +1447,20 @@ export default function AdminPage() {
                           style={{ border: '1px solid rgba(120, 101, 248, 0.15)' }}
                         >
                           <img src={video.thumbnail} alt={video.title} className="w-full h-32 object-cover" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                            <button
+                              onClick={() => handleEditVideo(video)}
+                              className="p-2 rounded-full"
+                              style={{ background: '#7865F8', color: '#fff' }}
+                              title="编辑"
+                            >
+                              <Icons.Edit className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
                               className="p-2 rounded-full"
                               style={{ background: '#FF4D4F', color: '#fff' }}
+                              title="删除"
                             >
                               <Icons.Trash2 className="w-4 h-4" />
                             </button>
