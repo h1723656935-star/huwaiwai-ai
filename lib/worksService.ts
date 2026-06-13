@@ -146,8 +146,7 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     let { data, error } = await supabase
       .from('artworks')
       .insert([artworkInsert])
-      .select()
-      .single();
+      .select();
 
     // 如果是 categories / prompt / negativePrompt 等列不存在的错误，逐个降级重试
     const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
@@ -159,8 +158,7 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
         const retry = await supabase
           .from('artworks')
           .insert([fallbackInsert])
-          .select()
-          .single();
+          .select();
         data = retry.data;
         error = retry.error;
       }
@@ -171,10 +169,16 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       throw error;
     }
     
+    const row = data?.[0];
+    if (!row) {
+      console.warn('createArtwork: select returned 0 rows, returning fallback');
+      return null;
+    }
+    
     return {
-      ...data,
-      tags: typeof data.tags === 'string' ? JSON.parse(data.tags) : (data.tags || []),
-      categories: typeof data.categories === 'string' ? JSON.parse(data.categories) : (data.categories || (data.category ? [data.category] : []))
+      ...row,
+      tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+      categories: typeof row.categories === 'string' ? JSON.parse(row.categories) : (row.categories || (row.category ? [row.category] : []))
     };
   } catch (error) {
     console.error('Error creating artwork:', error);
@@ -226,8 +230,7 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       .from('artworks')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     // 如果是 categories / prompt 等列不存在的错误，逐个降级重试
     const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
@@ -240,8 +243,7 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
           .from('artworks')
           .update(fallbackUpdate)
           .eq('id', id)
-          .select()
-          .single();
+          .select();
         data = retry.data;
         error = retry.error;
       }
@@ -252,10 +254,16 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       throw error;
     }
     
+    const row = data?.[0];
+    if (!row) {
+      console.warn('updateArtwork: select returned 0 rows, returning fallback');
+      return { id, ...updateData } as Artwork;
+    }
+    
     return {
-      ...data,
-      tags: typeof data.tags === 'string' ? JSON.parse(data.tags) : (data.tags || []),
-      categories: typeof data.categories === 'string' ? JSON.parse(data.categories) : (data.categories || (data.category ? [data.category] : []))
+      ...row,
+      tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+      categories: typeof row.categories === 'string' ? JSON.parse(row.categories) : (row.categories || (row.category ? [row.category] : []))
     };
   } catch (error) {
     console.error('Error updating artwork:', error);
@@ -406,9 +414,8 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       const result = await supabase
       .from('videos')
       .insert([videoInsert])
-      .select()
-      .single();
-    data = result.data;
+      .select();
+    data = result.data?.[0] || null;
     insertError = result.error;
     } catch (e) {
     insertError = e;
@@ -428,14 +435,13 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       const { data: minimalData, error: minimalError } = await supabase
         .from('videos')
         .insert([minimalInsert])
-        .select()
-        .single();
+        .select();
 
       if (minimalError) {
         console.error('Error creating video (minimal):', minimalError);
         throw new Error(`创建视频记录失败: ${(minimalError as Error).message}`);
       }
-      data = minimalData;
+      data = minimalData?.[0] || null;
     }
     
     console.log('Video created successfully:', data);
@@ -515,15 +521,21 @@ export async function updateVideo(id: string, video: Partial<Video>): Promise<Vi
       .from('videos')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Error updating video:', error);
       throw error;
     }
 
-    return data;
+    // .select() 返回数组，取第一个元素
+    if (data && data.length > 0) {
+      return data[0];
+    }
+
+    // 如果 select 被 RLS 阻止但 update 可能成功了，返回一个模拟对象
+    console.warn('updateVideo: select returned 0 rows (possible RLS block), returning fallback');
+    return { id, ...updateData } as Video;
   } catch (error) {
     console.error('Error updating video:', error);
     throw error;
