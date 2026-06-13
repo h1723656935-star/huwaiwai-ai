@@ -86,21 +86,32 @@ export async function getArtworks(): Promise<Artwork[]> {
       .select('*')
       .order('created_at', { ascending: false });
     
-    const dbArtworks = (data || []).map(item => ({
+    if (error) {
+      console.error('Error fetching artworks:', error);
+    }
+    
+    const dbArtworks = ((data || []) as any[]).map(item => ({
       ...item,
       tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : (item.tags || []),
       categories: typeof item.categories === 'string' ? JSON.parse(item.categories) : (item.categories || (item.category ? [item.category] : []))
     }));
     
-    // 合并 localStorage 数据，新版优先（编辑后即使 DB 未同步也能在首页看到）
+    // 合并 localStorage：被编辑过的作品，localStorage 始终覆盖 DB
     const stored = localStorage.getItem('userArtworks');
     const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
+    const editTimesRaw = localStorage.getItem('artwork_edit_times');
+    const editTimes: Record<string, number> = editTimesRaw ? JSON.parse(editTimesRaw) : {};
     const artworkMap = new Map<string, Artwork>();
     dbArtworks.forEach(a => artworkMap.set(a.id, a));
+    // localStorage 中已编辑过的作品覆盖 DB（用户编辑后的本地数据就是真相源）
     localArtworks.forEach(a => {
-      const existing = artworkMap.get(a.id);
-      if (!existing || new Date(a.created_at || 0).getTime() > new Date(existing.created_at || 0).getTime()) {
+      if (editTimes[a.id]) {
         artworkMap.set(a.id, a);
+      } else {
+        // 未编辑过的，DB 优先
+        if (!artworkMap.has(a.id)) {
+          artworkMap.set(a.id, a);
+        }
       }
     });
     
@@ -298,6 +309,11 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
           userArtworks.push(result);
         }
         localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+        // 记录编辑时间戳（用 Date.now() 标记，绕过 created_at 比较问题）
+        const editsRaw = localStorage.getItem('artwork_edit_times');
+        const edits: Record<string, number> = editsRaw ? JSON.parse(editsRaw) : {};
+        edits[id] = Date.now();
+        localStorage.setItem('artwork_edit_times', JSON.stringify(edits));
       } catch (e) {}
       return result;
     }
