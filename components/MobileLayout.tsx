@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MobileTabBar from './MobileTabBar';
 import MobileHero from './MobileHero';
@@ -14,19 +14,8 @@ export default function MobileLayout() {
   const [showIntro, setShowIntro] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
 
-  useEffect(() => {
-    // 阻止 body 滚动，由内部容器处理
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
-
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // 滚动到对应区域
-    const el = document.getElementById(tab);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
   };
 
   return (
