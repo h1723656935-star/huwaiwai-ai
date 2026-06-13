@@ -17,6 +17,7 @@ interface ArtworkForm {
   model: string;
   dimensions: string;
   description: string;
+  status: 'draft' | 'published';
 }
 
 interface VideoForm {
@@ -211,6 +212,7 @@ function ArtworkCard({ artwork, onEdit, onDelete, isVideo = false }: {
   const img = 'image' in artwork ? artwork.image : (artwork as Video).thumbnail;
   const cat = 'category' in artwork ? artwork.category : (artwork as any).categories?.[0] || '';
   const date = 'date' in artwork ? artwork.date : '';
+  const status = 'status' in artwork ? (artwork as Artwork).status : undefined;
   return (
     <motion.div
       layout
@@ -234,6 +236,11 @@ function ArtworkCard({ artwork, onEdit, onDelete, isVideo = false }: {
         {isVideo && (
           <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px]" style={{ background: 'rgba(0,0,0,0.7)', color: '#FFF' }}>
             <Icons.Video className="w-3 h-3 inline mr-1" />视频
+          </div>
+        )}
+        {status === 'draft' && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-medium" style={{ background: 'rgba(250,173,20,0.85)', color: '#FFF' }}>
+            草稿
           </div>
         )}
       </div>
@@ -275,6 +282,7 @@ export default function AdminPage() {
   const [imageForm, setImageForm] = useState<ArtworkForm>({
     title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0],
     image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '',
+    status: 'published',
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageDragOver, setImageDragOver] = useState(false);
@@ -476,6 +484,7 @@ export default function AdminPage() {
           title: imageForm.title, category: primaryCategory, categories: imageForm.categories, tags: tagsArray,
           date: imageForm.date, image: imageForm.image, prompt: imageForm.prompt, negativePrompt: imageForm.negativePrompt,
           model: imageForm.model, dimensions: imageForm.dimensions, description: imageForm.description,
+          status: imageForm.status,
         });
         // 直接更新本地 state，不依赖 loadAllData()（Supabase SELECT 可能被 RLS 阻止）
         if (result) {
@@ -487,6 +496,7 @@ export default function AdminPage() {
           title: imageForm.title, category: primaryCategory, categories: imageForm.categories, tags: tagsArray,
           date: imageForm.date, image: imageForm.image, prompt: imageForm.prompt, negativePrompt: imageForm.negativePrompt,
           model: imageForm.model, dimensions: imageForm.dimensions, description: imageForm.description,
+          status: imageForm.status,
         });
         // 直接添加到本地 state
         if (result) {
@@ -495,7 +505,7 @@ export default function AdminPage() {
         if (isLocalArtwork) setEditingArtwork(null);
       }
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
-      setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
+      setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '', status: 'published' });
       setImagePreview(null);
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error: any) {
@@ -548,21 +558,33 @@ export default function AdminPage() {
     if (!confirm('确定要删除这个作品吗？')) return;
     try {
       await worksService.deleteArtwork(id); setUserArtworks(prev => prev.filter(a => a.id !== id));
-      if (editingArtwork?.id === id) { setEditingArtwork(null); setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' }); setImagePreview(null); }
+      if (editingArtwork?.id === id) { setEditingArtwork(null); setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '', status: 'published' }); setImagePreview(null); }
       alert('删除成功！'); if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error) { alert('删除失败，请重试'); }
   };
 
   const handleEditArtwork = (artwork: Artwork) => {
     setEditingArtwork(artwork);
-    setImageForm({ title: artwork.title, categories: artwork.categories || (artwork.category ? [artwork.category] : []), tags: (artwork.tags || []).join(', '), date: artwork.date, image: artwork.image, prompt: artwork.prompt || '', negativePrompt: artwork.negativePrompt || '', model: artwork.model || '', dimensions: artwork.dimensions || '', description: artwork.description || '' });
+    setImageForm({ 
+      title: artwork.title, 
+      categories: artwork.categories || (artwork.category ? [artwork.category] : []), 
+      tags: (artwork.tags || []).join(', '), 
+      date: artwork.date, 
+      image: artwork.image, 
+      prompt: artwork.prompt || '', 
+      negativePrompt: artwork.negativePrompt || '', 
+      model: artwork.model || '', 
+      dimensions: artwork.dimensions || '', 
+      description: artwork.description || '',
+      status: artwork.status || 'published'
+    });
     setImagePreview(artwork.image); setWorksTab('image'); setEditorMode('edit');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
     setEditingArtwork(null); setEditingVideo(null);
-    setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
+    setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '', status: 'published' });
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
@@ -888,6 +910,14 @@ export default function AdminPage() {
                           <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>日期</label>
                           <ThemedInput type="date" value={imageForm.date} onChange={(e) => setImageForm({ ...imageForm, date: e.target.value })} />
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>发布状态</label>
+                        <ThemedSelect value={imageForm.status} onChange={(e) => setImageForm({ ...imageForm, status: e.target.value as 'draft' | 'published' })}>
+                          <option value="published">已发布</option>
+                          <option value="draft">草稿</option>
+                        </ThemedSelect>
                       </div>
 
                       <CategoryMultiSelect categories={imageCategories} selectedCategories={imageForm.categories} onChange={(categories) => setImageForm({ ...imageForm, categories })} />

@@ -26,6 +26,7 @@ export interface Artwork {
   dimensions?: string;
   prompt?: string;
   negativePrompt?: string;
+  status?: 'draft' | 'published';
 }
 
 export interface Video {
@@ -156,7 +157,8 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     // 只包含有值的字段，避免数据库缺少字段导致失败
     const artworkInsert: Record<string, any> = {
       title: artwork.title,
-      image: imageUrl
+      image: imageUrl,
+      status: artwork.status || 'published'
     };
     if (artwork.category && artwork.category.trim()) artworkInsert.category = artwork.category;
     if (artwork.categories && artwork.categories.length > 0) artworkInsert.categories = JSON.stringify(artwork.categories);
@@ -272,6 +274,7 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
     if (artwork.model !== undefined) updateData.model = artwork.model;
     if (artwork.dimensions !== undefined) updateData.dimensions = artwork.dimensions;
     if (artwork.description !== undefined) updateData.description = artwork.description;
+    if (artwork.status !== undefined) updateData.status = artwork.status;
 
     // 先执行 update，再用 select 验证是否真的写入了
     const { error: updateError } = await supabase

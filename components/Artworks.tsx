@@ -333,11 +333,14 @@ export default function Artworks() {
     setLoading(true);
     try {
       const data = await getArtworks();
-      setArtworks(data);
+      // 首页只展示已发布的作品，过滤掉草稿
+      const published = data.filter(w => w.status !== 'draft');
+      setArtworks(published);
     } catch (error) {
       console.error('Failed to fetch artworks:', error);
       const stored = localStorage.getItem('userArtworks');
-      setArtworks(stored ? JSON.parse(stored) : []);
+      const parsed = stored ? JSON.parse(stored) : [];
+      setArtworks(parsed.filter((w: Artwork) => w.status !== 'draft'));
     } finally {
       setLoading(false);
     }
