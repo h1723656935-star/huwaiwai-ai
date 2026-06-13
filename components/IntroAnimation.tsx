@@ -6,10 +6,64 @@ import { useEffect, useState } from 'react';
 // 「墨璃」Loading 界面 - 图片 + 电影级特效
 const INTRO_IMAGE = '/moli/moli-intro.png';
 
+interface Star {
+  id: number;
+  left: number;
+  top: number;
+  size: number;
+  color: string;
+  duration: number;
+  delay: number;
+  y: number;
+}
+
+interface CharStar {
+  id: number;
+  left: number;
+  top: number;
+  delay: number;
+}
+
 export default function IntroAnimation({ onComplete }: { onComplete: () => void }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [stars, setStars] = useState<Star[]>([]);
+  const [charStars, setCharStars] = useState<CharStar[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
+    // 检测手机端 - 减少星星数量避免性能问题
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+    const isSmallScreen = window.innerWidth < 768;
+    const mobile = isCoarse || isSmallScreen;
+    setIsMobile(mobile);
+
+    // 客户端生成随机星星 - 避免 SSR/客户端水合不一致导致的闪烁
+    const starCount = mobile ? 30 : 80;
+    const colors = ['#A78BD9', '#E8DEED', '#D4AF7A', '#C9B3E0'];
+    const newStars: Star[] = [...Array(starCount)].map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      size: Math.random() * 2.5 + 0.5,
+      color: colors[i % 4],
+      duration: 2 + Math.random() * 3,
+      delay: Math.random() * 2.5,
+      y: 10 + Math.random() * 20,
+    }));
+    setStars(newStars);
+
+    // 角色周围星光
+    const newCharStars: CharStar[] = [...Array(mobile ? 6 : 12)].map((_, i) => ({
+      id: i,
+      left: -5 + Math.random() * 110,
+      top: Math.random() * 95,
+      delay: 0.6 + i * 0.18,
+    }));
+    setCharStars(newCharStars);
+
     const timer = setTimeout(() => {
       onComplete();
     }, 3800);
@@ -33,32 +87,25 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
         }}
       >
         {/* ====== 背景星空 ====== */}
-        {[...Array(80)].map((_, i) => (
+        {stars.map((star) => (
           <motion.div
-            key={`star-${i}`}
+            key={`star-${star.id}`}
             className="absolute rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * 2.5 + 0.5}px`,
-              height: `${Math.random() * 2.5 + 0.5}px`,
-              background:
-                i % 4 === 0
-                  ? '#A78BD9'
-                  : i % 4 === 1
-                    ? '#E8DEED'
-                    : i % 4 === 2
-                      ? '#D4AF7A'
-                      : '#C9B3E0',
+              left: `${star.left}%`,
+              top: `${star.top}%`,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              background: star.color,
             }}
             animate={{
-              opacity: [0, Math.random() * 0.8 + 0.2, 0],
+              opacity: [0, 0.7, 0],
               scale: [0, 1, 0],
-              y: [0, -(10 + Math.random() * 20), 0],
+              y: [0, -star.y, 0],
             }}
             transition={{
-              duration: 2 + Math.random() * 3,
-              delay: Math.random() * 2.5,
+              duration: star.duration,
+              delay: star.delay,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -238,13 +285,13 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
           />
 
           {/* 角色周围星光 */}
-          {[...Array(12)].map((_, i) => (
+          {charStars.map((cs) => (
             <motion.div
-              key={`char-star-${i}`}
+              key={`char-star-${cs.id}`}
               className="absolute"
               style={{
-                left: `${-5 + Math.random() * 110}%`,
-                top: `${Math.random() * 95}%`,
+                left: `${cs.left}%`,
+                top: `${cs.top}%`,
               }}
               animate={{
                 scale: [0, 1.4, 0],
@@ -253,7 +300,7 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
               }}
               transition={{
                 duration: 2.2,
-                delay: 0.6 + i * 0.18,
+                delay: cs.delay,
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}

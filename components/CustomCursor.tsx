@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -8,8 +8,31 @@ export default function CustomCursor() {
   const labelRef = useRef<HTMLDivElement>(null);
   const labelTextRef = useRef<HTMLSpanElement>(null);
   const lightBarRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  // mounted effect - 仅设置 mounted
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 触屏设备检测 effect
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+      const isNoHover = window.matchMedia('(hover: none)').matches;
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice((isCoarse || isNoHover) && hasTouch);
+    };
+    checkTouchDevice();
+    window.addEventListener('resize', checkTouchDevice);
+    return () => window.removeEventListener('resize', checkTouchDevice);
+  }, []);
+
+  // 鼠标光标逻辑 - 仅在非触屏设备运行
+  useEffect(() => {
+    if (isTouchDevice) return;
+
     let rafId: number;
     let targetX = 0;
     let targetY = 0;
@@ -96,6 +119,7 @@ export default function CustomCursor() {
       if (lightTrailRef.current) lightTrailRef.current.style.opacity = '0';
     };
 
+    // 触屏设备不绑定鼠标事件
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.documentElement.addEventListener('mouseleave', handleMouseLeave);
     rafId = requestAnimationFrame(animate);
@@ -105,7 +129,12 @@ export default function CustomCursor() {
       document.documentElement.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [isTouchDevice]);
+
+  // 未挂载或触屏设备直接不渲染 - 避免 SSR 闪烁
+  if (!mounted || isTouchDevice) {
+    return null;
+  }
 
   return (
     <>
