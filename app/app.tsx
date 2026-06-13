@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Artworks from '@/components/Artworks';
@@ -11,8 +12,10 @@ import IntroAnimation from '@/components/IntroAnimation';
 import MoliCharacter from '@/components/MoliCharacter';
 import CustomCursor from '@/components/CustomCursor';
 import MouseGlow from '@/components/MouseGlow';
+import MobileLayout from '@/components/MobileLayout';
 
 export default function App() {
+  const isMobile = useIsMobile(768);
   const [showIntro, setShowIntro] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +50,12 @@ export default function App() {
     },
   };
 
+  // 移动端使用独立布局
+  if (isMobile) {
+    return <MobileLayout />;
+  }
+
+  // PC 端保持原有布局
   return (
     <div
       ref={containerRef}

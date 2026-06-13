@@ -21,7 +21,11 @@ const MOLI_QUOTES = [
   '银河倾落，化为笔尖星尘。',
 ];
 
-export default function MoliCharacter() {
+interface MoliCharacterProps {
+  mobileSize?: number;
+}
+
+export default function MoliCharacter({ mobileSize }: MoliCharacterProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -50,6 +54,113 @@ export default function MoliCharacter() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // 移动端模式 - 显示圆形头像
+  if (isMobile && mobileSize) {
+    const size = mobileSize;
+    const handleAvatarClick = () => {
+      setShowMenu(!showMenu);
+      if (!showMenu) {
+        const randomIndex = Math.floor(Math.random() * MOLI_QUOTES.length);
+        setCurrentQuote(MOLI_QUOTES[randomIndex]);
+      }
+    };
+
+    return (
+      <div className="fixed z-40" style={{ right: 16, bottom: 88 }}>
+        <motion.button
+          onClick={handleAvatarClick}
+          className="relative overflow-hidden"
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(120,101,248,0.2) 0%, rgba(169,145,255,0.15) 100%)',
+            boxShadow: '0 4px 16px rgba(120,101,248,0.3)',
+            border: '1.5px solid rgba(120,101,248,0.4)',
+            padding: 0,
+          }}
+          whileTap={{ scale: 0.92 }}
+        >
+          <img
+            src={CHARACTER_IMAGE}
+            alt="墨璃"
+            className="w-full h-full"
+            style={{ objectFit: 'cover', objectPosition: '50% 22%' }}
+            draggable={false}
+          />
+          {/* 呼吸光环 */}
+          <motion.div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ border: '1.5px solid rgba(120,101,248,0.4)' }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.button>
+
+        {/* 移动端菜单 */}
+        <AnimatePresence>
+          {showMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.25 }}
+              className="absolute"
+              style={{ bottom: `${size + 12}px`, right: 0, width: '240px' }}
+            >
+              <div
+                style={{
+                  background: 'rgba(13,10,24,0.96)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(120,101,248,0.3)',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                  padding: '14px',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full overflow-hidden" style={{ border: '1px solid rgba(120,101,248,0.4)' }}>
+                    <img src={CHARACTER_IMAGE} alt="墨璃" className="w-full h-full" style={{ objectFit: 'cover', objectPosition: '50% 22%' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: '#ECE7FF' }}>墨璃</p>
+                    <p className="text-[10px]" style={{ color: '#A991FF' }}>AI 助手</p>
+                  </div>
+                </div>
+                <div className="mb-3 p-2 rounded-lg text-xs leading-relaxed" style={{
+                  background: 'rgba(120,101,248,0.08)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.12)', fontStyle: 'italic',
+                }}>
+                  「{currentQuote}」
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { label: '查看作品', target: 'artworks' },
+                    { label: '视频画廊', target: 'videos' },
+                    { label: '返回顶部', target: 'top' },
+                  ].map(item => (
+                    <motion.button
+                      key={item.target}
+                      onClick={() => {
+                        setShowMenu(false);
+                        if (item.target === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+                        else document.getElementById(item.target)?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium"
+                      style={{ background: 'rgba(120,101,248,0.08)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.12)' }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      {item.label}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // PC 端模式 - 保持原有逻辑
   if (isMobile) {
     return null;
   }

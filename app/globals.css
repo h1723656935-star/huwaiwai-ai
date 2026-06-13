@@ -444,4 +444,64 @@
     transform: none;
     will-change: auto;
   }
+
+  /* ====== 移动端专属样式 ====== */
+  /* 隐藏横向滚动条 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 移动端点击反馈 */
+  .tap-active {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tap-active:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+  }
+}
+
+/* ====== 移动端全局样式 ====== */
+@media (max-width: 767px) {
+  /* 移除点击高亮 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 移动端减少毛玻璃使用，降低性能消耗 */
+  .glass {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* 移动端隐藏自定义光标 */
+  .custom-cursor-active *,
+  .custom-cursor-active *::before,
+  .custom-cursor-active *::after {
+    cursor: auto !important;
+  }
+
+  /* 安全区域适配 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* 移动端图片浏览优化 */
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* 减少动画时长 */
+  .animate-float {
+    animation-duration: 4s;
+  }
+
+  .animate-pulse-glow {
+    animation-duration: 3s;
+  }
 }
