@@ -852,7 +852,7 @@ export default function AdminPage() {
                 ) : (
                   /* ===== 编辑模式 ===== */
                   worksTab === 'image' ? (
-                    <form onSubmit={handleImageSubmit} className="space-y-4">
+                    <form id="image-upload-form" onSubmit={handleImageSubmit} className="space-y-4">
                       {editingArtwork && (
                         <div className="flex items-center justify-between p-3 rounded-xl" style={{
                           background: editingArtwork.id?.toString().startsWith('local-') ? 'rgba(255,153,0,0.1)' : 'rgba(120,101,248,0.1)',
@@ -917,7 +917,7 @@ export default function AdminPage() {
                       )}
                     </form>
                   ) : (
-                    <form onSubmit={handleVideoSubmit} className="space-y-4">
+                    <form id="video-upload-form" onSubmit={handleVideoSubmit} className="space-y-4">
                       {editingVideo && (
                         <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(120,101,248,0.15)', border: '1px solid rgba(120,101,248,0.3)' }}>
                           <span className="text-sm" style={{ color: THEME.text.primary }}>✏️ 正在编辑视频：<strong>{editingVideo.title}</strong></span>
@@ -1301,19 +1301,10 @@ export default function AdminPage() {
                 </ThemedButton>
                 <ThemedButton
                   onClick={() => {
-                    // iOS Safari 兼容：直接调用提交函数，不用 requestSubmit()
                     if (worksTab === 'image') {
-                      const form = document.querySelector('form') as HTMLFormElement;
-                      if (form) {
-                        const event = new Event('submit', { bubbles: true, cancelable: true });
-                        if (form.dispatchEvent(event)) handleImageSubmit(event as any);
-                      }
+                      handleImageSubmit({ preventDefault: () => {} } as any);
                     } else {
-                      const form = document.querySelectorAll('form')[1] as HTMLFormElement;
-                      if (form) {
-                        const event = new Event('submit', { bubbles: true, cancelable: true });
-                        if (form.dispatchEvent(event)) handleVideoSubmit(event as any);
-                      }
+                      handleVideoSubmit({ preventDefault: () => {} } as any);
                     }
                   }}
                   disabled={uploading}
