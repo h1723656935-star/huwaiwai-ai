@@ -469,22 +469,64 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
 
 export async function updateVideo(id: string, video: Partial<Video>): Promise<Video | null> {
   try {
+    const updateData: Record<string, any> = {};
+    let thumbnailUrl = video.thumbnail || '';
+    let videoFileUrl = video.videoFile || '';
+
+    // 上传缩略图（如果是 base64）
+    if (video.thumbnail && video.thumbnail.startsWith('data:')) {
+      const base64Data = video.thumbnail.split(',')[1];
+      const blob = b64toBlob(base64Data, 'image/jpeg');
+      const fileName = `thumbnails/${Date.now()}_edit.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+      if (uploadError) throw new Error(`上传缩略图失败: ${uploadError.message}`);
+      const { data: urlData } = await supabase.storage.from('media').getPublicUrl(fileName);
+      thumbnailUrl = urlData.publicUrl;
+    }
+
+    // 上传视频文件（如果是 base64）
+    if (video.videoFile && video.videoFile.startsWith('data:')) {
+      const base64Data = video.videoFile.split(',')[1];
+      const blob = b64toBlob(base64Data, 'video/mp4');
+      const fileName = `videos/${Date.now()}_edit.mp4`;
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, blob, { contentType: 'video/mp4', upsert: false, cacheControl: '3600' });
+      if (uploadError) throw new Error(`上传视频文件失败: ${uploadError.message}`);
+      const { data: urlData } = await supabase.storage.from('media').getPublicUrl(fileName);
+      videoFileUrl = urlData.publicUrl;
+    }
+
+    if (video.title !== undefined) updateData.title = video.title;
+    if (video.description !== undefined) updateData.description = video.description;
+    if (video.duration !== undefined) updateData.duration = video.duration;
+    if (video.url !== undefined) updateData.url = video.url;
+    if (video.category !== undefined) updateData.category = video.category;
+    if (thumbnailUrl) updateData.thumbnail = thumbnailUrl;
+    if (videoFileUrl) {
+      updateData.videoFile = videoFileUrl;
+      // 视频文件URL也存到 url 字段作为兼容
+      if (!updateData.url) updateData.url = videoFileUrl;
+    }
+
     const { data, error } = await supabase
       .from('videos')
-      .update(video)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error updating video:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Error updating video:', error);
-    return null;
+    throw error;
   }
 }
 

@@ -277,6 +277,7 @@ export default function AdminPage() {
     image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '',
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageDragOver, setImageDragOver] = useState(false);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
 
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
@@ -285,6 +286,7 @@ export default function AdminPage() {
   });
   const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoDragOver, setVideoDragOver] = useState(false);
 
   const [skillForm, setSkillForm] = useState<SkillForm>({ name: '', level: '80' });
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
@@ -431,6 +433,33 @@ export default function AdminPage() {
     };
   };
 
+  // 拖拽上传 - 图片
+  const handleImageDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setImageDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return alert('请拖入图片文件');
+    const reader = new FileReader();
+    reader.onloadend = () => { const b = reader.result as string; setImagePreview(b); setImageForm({ ...imageForm, image: b }); };
+    reader.readAsDataURL(file);
+  };
+
+  // 拖拽上传 - 视频
+  const handleVideoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setVideoDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) return alert('请拖入视频文件');
+    if (file.size > 50 * 1024 * 1024) return alert('视频文件太大，请上传小于50MB的视频');
+    const reader = new FileReader();
+    reader.onloadend = () => { const b = reader.result as string; setVideoPreview(b); setVideoForm({ ...videoForm, videoFile: b }); generateThumbnail(b); };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
+
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (imageForm.categories.length === 0) return alert('️ 请先选择至少一个分类');
@@ -481,7 +510,7 @@ export default function AdminPage() {
     setUploading(true);
     try {
       if (editingVideo) {
-        await worksService.updateVideo(editingVideo.id, { title: videoForm.title, description: videoForm.description, duration: videoForm.duration, url: videoForm.url, category: videoForm.category });
+        await worksService.updateVideo(editingVideo.id, { title: videoForm.title, description: videoForm.description, duration: videoForm.duration, url: videoForm.url, category: videoForm.category, videoFile: videoForm.videoFile || undefined, thumbnail: videoForm.thumbnail || undefined });
         setEditingVideo(null);
       } else {
         await worksService.createVideo({ title: videoForm.title, description: videoForm.description, duration: videoForm.duration, thumbnail: videoForm.thumbnail, url: videoForm.url, videoFile: videoForm.videoFile || undefined, category: videoForm.category });
@@ -858,13 +887,23 @@ export default function AdminPage() {
                       <PromptEditor imageForm={imageForm} setImageForm={setImageForm} />
 
                       {!editingArtwork && (
-                        <div className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors" style={{ borderColor: 'rgba(120, 101, 248, 0.25)' }}
+                        <div
+                          className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                          style={{
+                            borderColor: imageDragOver ? '#7865F8' : 'rgba(120, 101, 248, 0.25)',
+                            background: imageDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
+                          }}
                           onClick={() => document.getElementById('image-upload')?.click()}
-                          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#7865F8')}
-                          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(120, 101, 248, 0.25)')}>
+                          onDragOver={handleDragOver}
+                          onDragEnter={() => setImageDragOver(true)}
+                          onDragLeave={() => setImageDragOver(false)}
+                          onDrop={handleImageDrop}
+                        >
                           <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                           <Icons.Upload className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
-                          <p className="text-sm" style={{ color: THEME.text.muted }}>点击或拖拽上传图片</p>
+                          <p className="text-sm" style={{ color: imageDragOver ? '#A991FF' : THEME.text.muted }}>
+                            {imageDragOver ? '松开以上传图片' : '点击或拖拽上传图片'}
+                          </p>
                         </div>
                       )}
                       {imagePreview && (
@@ -902,13 +941,23 @@ export default function AdminPage() {
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频描述</label>
                         <AutoGrowTextarea value={videoForm.description} onChange={(e) => setVideoForm({ ...videoForm, description: e.target.value })} placeholder="视频描述..." minRows={2} />
                       </div>
-                      <div className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors" style={{ borderColor: 'rgba(120,101,248,0.25)' }}
+                      <div
+                        className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                        style={{
+                          borderColor: videoDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
+                          background: videoDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
+                        }}
                         onClick={() => document.getElementById('video-file-upload')?.click()}
-                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#7865F8')}
-                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(120,101,248,0.25)')}>
+                        onDragOver={handleDragOver}
+                        onDragEnter={() => setVideoDragOver(true)}
+                        onDragLeave={() => setVideoDragOver(false)}
+                        onDrop={handleVideoDrop}
+                      >
                         <input id="video-file-upload" type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
                         <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
-                        <p className="text-sm" style={{ color: THEME.text.muted }}>点击上传视频文件（最大50MB）</p>
+                        <p className="text-sm" style={{ color: videoDragOver ? '#A991FF' : THEME.text.muted }}>
+                          {videoDragOver ? '松开以上传视频' : '点击或拖拽上传视频（最大50MB）'}
+                        </p>
                       </div>
                       {videoPreview && (
                         <div className="relative rounded-xl overflow-hidden">
