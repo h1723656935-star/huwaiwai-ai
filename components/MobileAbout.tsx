@@ -81,13 +81,15 @@ export default function MobileAbout() {
 
       {/* 社交链接 */}
       <div className="mt-8 space-y-3">
-        <a
+        <motion.a
           href="/admin"
           className="block w-full py-3 rounded-xl text-center text-sm font-medium text-white"
           style={{ background: 'linear-gradient(135deg, #7865F8, #A991FF)' }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         >
           管理后台
-        </a>
+        </motion.a>
       </div>
 
       {/* 页脚 */}

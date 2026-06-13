@@ -130,7 +130,7 @@ export default function MobileArtworks() {
       {/* 分类筛选 - 横向滚动 */}
       <div className="flex gap-2 px-4 pb-4 overflow-x-auto scrollbar-hide">
         {categories.map((cat) => (
-          <button
+          <motion.button
             key={cat}
             onClick={() => setActiveCategory(cat)}
             className="px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0"
@@ -140,9 +140,10 @@ export default function MobileArtworks() {
                 : 'rgba(255,255,255,0.06)',
               color: activeCategory === cat ? '#FFF' : 'rgba(199,184,255,0.6)',
             }}
+            whileTap={{ scale: 0.92 }}
           >
             {cat}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -214,21 +215,25 @@ export default function MobileArtworks() {
           >
             {/* 顶部导航栏 */}
             <div className="flex items-center justify-between px-4 py-3 bg-[#0D0A18]/95 backdrop-blur-xl border-b border-white/5">
-              <button
+              <motion.button
                 onClick={() => { setSelectedWork(null); setPromptExpanded(false); }}
                 className="p-2 -ml-2"
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
                 <X className="w-5 h-5 text-[#C7B8FF]/60" />
-              </button>
+              </motion.button>
               <span className="text-sm font-medium text-white truncate max-w-[200px]">
                 {selectedWork.title}
               </span>
-              <a
+              <motion.a
                 href={`/artwork/${selectedWork.id}`}
                 className="p-2 -mr-2"
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
                 <Eye className="w-5 h-5 text-[#A991FF]" />
-              </a>
+              </motion.a>
             </div>
 
             {/* 滚动内容区 */}
@@ -261,14 +266,18 @@ export default function MobileArtworks() {
 
                 {/* 互动按钮 */}
                 <div className="flex gap-2">
-                  <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(199,184,255,0.7)' }}>
+                  <motion.button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(199,184,255,0.7)' }}
+                    whileTap={{ scale: 0.92 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
                     <Heart className="w-3.5 h-3.5" /> 0
-                  </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(199,184,255,0.7)' }}>
+                  </motion.button>
+                  <motion.button className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(199,184,255,0.7)' }}
+                    whileTap={{ scale: 0.92 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
                     <Bookmark className="w-3.5 h-3.5" /> 收藏
-                  </button>
+                  </motion.button>
                 </div>
 
                 {/* 描述 */}
@@ -324,9 +333,11 @@ export default function MobileArtworks() {
                 {/* Prompt 折叠模块 */}
                 {(selectedWork.prompt || selectedWork.negativePrompt) && (
                   <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <button
+                    <motion.button
                       onClick={() => setPromptExpanded(!promptExpanded)}
                       className="w-full flex items-center justify-between px-3 py-3"
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                     >
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[#A991FF]" />
@@ -337,7 +348,7 @@ export default function MobileArtworks() {
                       ) : (
                         <ChevronDown className="w-4 h-4 text-[#C7B8FF]/40" />
                       )}
-                    </button>
+                    </motion.button>
 
                     <AnimatePresence>
                       {promptExpanded && (
@@ -353,16 +364,18 @@ export default function MobileArtworks() {
                               <div>
                                 <div className="flex items-center justify-between mb-1.5">
                                   <span className="text-[10px] uppercase tracking-wider font-semibold text-[#A991FF]">Positive</span>
-                                  <button
+                                  <motion.button
                                     onClick={() => copyToClipboard(selectedWork.prompt!, 'pos')}
                                     className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]"
                                     style={{
                                       background: copiedField === 'pos' ? 'rgba(120,101,248,0.2)' : 'rgba(120,101,248,0.08)',
                                       color: copiedField === 'pos' ? '#A991FF' : 'rgba(199,184,255,0.6)',
                                     }}
+                                    whileTap={{ scale: 0.92 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                                   >
                                     {copiedField === 'pos' ? <><Check className="w-3 h-3" /> 已复制</> : <><Copy className="w-3 h-3" /> 复制</>}
-                                  </button>
+                                  </motion.button>
                                 </div>
                                 <p className="text-xs text-[#C7B8FF]/70 font-mono leading-relaxed p-2 rounded-lg"
                                   style={{ background: 'rgba(120,101,248,0.06)' }}>
@@ -374,16 +387,18 @@ export default function MobileArtworks() {
                               <div>
                                 <div className="flex items-center justify-between mb-1.5">
                                   <span className="text-[10px] uppercase tracking-wider font-semibold text-[#FF7878]">Negative</span>
-                                  <button
+                                  <motion.button
                                     onClick={() => copyToClipboard(selectedWork.negativePrompt!, 'neg')}
                                     className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]"
                                     style={{
                                       background: copiedField === 'neg' ? 'rgba(255,120,120,0.2)' : 'rgba(255,120,120,0.08)',
                                       color: copiedField === 'neg' ? '#FF7878' : 'rgba(199,184,255,0.6)',
                                     }}
+                                    whileTap={{ scale: 0.92 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                                   >
                                     {copiedField === 'neg' ? <><Check className="w-3 h-3" /> 已复制</> : <><Copy className="w-3 h-3" /> 复制</>}
-                                  </button>
+                                  </motion.button>
                                 </div>
                                 <p className="text-xs text-[#C7B8FF]/70 font-mono leading-relaxed p-2 rounded-lg"
                                   style={{ background: 'rgba(255,120,120,0.04)' }}>
