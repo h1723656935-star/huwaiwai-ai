@@ -175,8 +175,8 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       .insert([artworkInsert])
       .select();
 
-    // 如果是 categories / prompt / negativePrompt 等列不存在的错误，逐个降级重试
-    const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
+    // 如果是 status / categories / prompt 等列不存在的错误，逐个降级重试
+    const optionalFields = ['status', 'categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
     let fallbackInsert = { ...artworkInsert };
     for (const field of optionalFields) {
       if (error && (error.message?.includes(field) || error.code === 'PGRST204')) {
@@ -282,7 +282,19 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       .update(updateData)
       .eq('id', id);
 
-    if (updateError) {
+    // 如果 status 列不存在，移除后重试
+    if (updateError && updateError.message?.includes('status')) {
+      console.warn('status column missing in update, falling back');
+      delete updateData.status;
+      const { error: retryError } = await supabase
+        .from('artworks')
+        .update(updateData)
+        .eq('id', id);
+      if (retryError) {
+        console.error('Error updating artwork after fallback:', retryError);
+        throw retryError;
+      }
+    } else if (updateError) {
       console.error('Error updating artwork:', updateError);
       throw updateError;
     }
