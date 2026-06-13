@@ -474,9 +474,13 @@ export default function AdminPage() {
       if (editingArtwork && !isLocalArtwork) {
         result = await worksService.updateArtwork(editingArtwork.id, {
           title: imageForm.title, category: primaryCategory, categories: imageForm.categories, tags: tagsArray,
-          date: imageForm.date, prompt: imageForm.prompt, negativePrompt: imageForm.negativePrompt,
+          date: imageForm.date, image: imageForm.image, prompt: imageForm.prompt, negativePrompt: imageForm.negativePrompt,
           model: imageForm.model, dimensions: imageForm.dimensions, description: imageForm.description,
         });
+        // 直接更新本地 state，不依赖 loadAllData()（Supabase SELECT 可能被 RLS 阻止）
+        if (result) {
+          setUserArtworks(prev => prev.map(a => a.id === editingArtwork.id ? result : a));
+        }
         setEditingArtwork(null);
       } else {
         result = await worksService.createArtwork({
@@ -484,11 +488,15 @@ export default function AdminPage() {
           date: imageForm.date, image: imageForm.image, prompt: imageForm.prompt, negativePrompt: imageForm.negativePrompt,
           model: imageForm.model, dimensions: imageForm.dimensions, description: imageForm.description,
         });
+        // 直接添加到本地 state
+        if (result) {
+          setUserArtworks(prev => [result, ...prev]);
+        }
         if (isLocalArtwork) setEditingArtwork(null);
       }
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
-      setImagePreview(null); loadAllData();
+      setImagePreview(null);
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -510,14 +518,20 @@ export default function AdminPage() {
     setUploading(true);
     try {
       if (editingVideo) {
-        await worksService.updateVideo(editingVideo.id, { title: videoForm.title, description: videoForm.description, duration: videoForm.duration, url: videoForm.url, category: videoForm.category, videoFile: videoForm.videoFile || undefined, thumbnail: videoForm.thumbnail || undefined });
+        const result = await worksService.updateVideo(editingVideo.id, { title: videoForm.title, description: videoForm.description, duration: videoForm.duration, url: videoForm.url, category: videoForm.category, videoFile: videoForm.videoFile || undefined, thumbnail: videoForm.thumbnail || undefined });
+        if (result) {
+          setUserVideos(prev => prev.map(v => v.id === editingVideo.id ? result : v));
+        }
         setEditingVideo(null);
       } else {
-        await worksService.createVideo({ title: videoForm.title, description: videoForm.description, duration: videoForm.duration, thumbnail: videoForm.thumbnail, url: videoForm.url, videoFile: videoForm.videoFile || undefined, category: videoForm.category });
+        const result = await worksService.createVideo({ title: videoForm.title, description: videoForm.description, duration: videoForm.duration, thumbnail: videoForm.thumbnail, url: videoForm.url, videoFile: videoForm.videoFile || undefined, category: videoForm.category });
+        if (result) {
+          setUserVideos(prev => [result, ...prev]);
+        }
       }
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
-      setVideoThumbnailPreview(null); setVideoPreview(null); loadAllData();
+      setVideoThumbnailPreview(null); setVideoPreview(null);
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error: any) {
       console.error('Upload error:', error);

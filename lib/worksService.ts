@@ -214,60 +214,69 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
 export async function updateArtwork(id: string, artwork: Partial<Artwork>): Promise<Artwork | null> {
   try {
     const updateData: Record<string, any> = {};
+
+    // 如果 image 是 base64，先上传到 Storage 获取 URL（和 createArtwork 一致）
+    let imageUrl = artwork.image;
+    if (artwork.image && artwork.image.startsWith('data:')) {
+      try {
+        const base64Data = artwork.image.split(',')[1];
+        const blob = b64toBlob(base64Data, 'image/jpeg');
+        const fileName = `artworks/${Date.now()}_edit.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+        if (uploadError) {
+          console.warn('Failed to upload edited image to storage, keeping original:', uploadError.message);
+        } else {
+          const { data: urlData } = await supabase.storage.from('media').getPublicUrl(fileName);
+          imageUrl = urlData.publicUrl;
+        }
+      } catch (uploadErr) {
+        console.warn('Image upload failed during edit, keeping original image');
+      }
+    }
+
     if (artwork.title !== undefined) updateData.title = artwork.title;
     if (artwork.category !== undefined) updateData.category = artwork.category;
     if (artwork.categories !== undefined) updateData.categories = JSON.stringify(artwork.categories);
     if (artwork.tags !== undefined) updateData.tags = JSON.stringify(artwork.tags);
     if (artwork.date !== undefined) updateData.date = artwork.date;
-    if (artwork.image !== undefined) updateData.image = artwork.image;
+    if (imageUrl !== undefined) updateData.image = imageUrl;
     if (artwork.prompt !== undefined) updateData.prompt = artwork.prompt;
     if (artwork.negativePrompt !== undefined) updateData.negativePrompt = artwork.negativePrompt;
     if (artwork.model !== undefined) updateData.model = artwork.model;
     if (artwork.dimensions !== undefined) updateData.dimensions = artwork.dimensions;
     if (artwork.description !== undefined) updateData.description = artwork.description;
 
-    let { data, error } = await supabase
+    const { error } = await supabase
       .from('artworks')
       .update(updateData)
-      .eq('id', id)
-      .select();
+      .eq('id', id);
 
-    // 如果是 categories / prompt 等列不存在的错误，逐个降级重试
-    const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
-    let fallbackUpdate = { ...updateData };
-    for (const field of optionalFields) {
-      if (error && (error.message?.includes(field) || error.code === 'PGRST204')) {
-        console.warn(`${field} column missing, falling back`);
-        delete fallbackUpdate[field];
-        const retry = await supabase
-          .from('artworks')
-          .update(fallbackUpdate)
-          .eq('id', id)
-          .select();
-        data = retry.data;
-        error = retry.error;
-      }
-    }
-    
     if (error) {
       console.error('Error updating artwork:', error);
       throw error;
     }
-    
-    const row = data?.[0];
-    if (!row) {
-      console.warn('updateArtwork: select returned 0 rows, returning fallback');
-      return { id, ...updateData } as Artwork;
-    }
-    
+
+    // 编辑成功后，直接返回更新后的数据（不依赖 SELECT，避免 RLS 问题）
     return {
-      ...row,
-      tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
-      categories: typeof row.categories === 'string' ? JSON.parse(row.categories) : (row.categories || (row.category ? [row.category] : []))
-    };
+      id,
+      title: artwork.title || '',
+      category: artwork.category || '',
+      categories: artwork.categories || [],
+      tags: artwork.tags || [],
+      date: artwork.date || '',
+      image: imageUrl || artwork.image || '',
+      prompt: artwork.prompt || '',
+      negativePrompt: artwork.negativePrompt || '',
+      model: artwork.model || '',
+      dimensions: artwork.dimensions || '',
+      description: artwork.description || '',
+      created_at: new Date().toISOString(),
+    } as Artwork;
   } catch (error) {
     console.error('Error updating artwork:', error);
-    return null;
+    throw error;
   }
 }
 
