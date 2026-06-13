@@ -654,44 +654,6 @@ export default function AdminPage() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('artworks-updated'));
       }
-      // 检查保存的字段是否完整 - 仅在用户填了但没保存时才提示
-      try {
-        const userFields = {
-          prompt: imageForm.prompt,
-          negativePrompt: imageForm.negativePrompt,
-          model: imageForm.model,
-          dimensions: imageForm.dimensions,
-          description: imageForm.description,
-        };
-        const resultFields = {
-          prompt: result && (result as any).prompt,
-          negativePrompt: result && (result as any).negativePrompt,
-          model: result && (result as any).model,
-          dimensions: result && (result as any).dimensions,
-          description: result && (result as any).description,
-        };
-        const missing: string[] = [];
-        (Object.keys(userFields) as Array<keyof typeof userFields>).forEach(key => {
-          if (userFields[key] && userFields[key]!.trim() && !resultFields[key]) {
-            missing.push(key);
-          }
-        });
-        if (missing.length > 0) {
-          setTimeout(() => {
-            alert(
-              `⚠️ 已填的 ${missing.length} 个字段未保存：${missing.join('、')}\n\n` +
-              `原因：可能是数据库缺少这些列。\n\n` +
-              `解决方法：\n` +
-              `1. 打开 Supabase 控制台 → SQL Editor\n` +
-              `2. 执行项目根目录下的 supabase-migration.sql\n` +
-              `3. 添加缺失的字段后重新上传\n\n` +
-              `（如果没填这些字段，可忽略此提示）`
-            );
-          }, 500);
-        }
-      } catch (e) {
-        // 静默失败
-      }
     } catch (error: any) {
       console.error('Upload error:', error);
       const message = error?.message || String(error);
