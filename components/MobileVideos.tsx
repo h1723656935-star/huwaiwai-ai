@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, X } from 'lucide-react';
 import { getVideos } from '@/lib/worksService';
 import type { Video } from '@/lib/worksService';
 
 export default function MobileVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playingVideo, setPlayingVideo] = useState<Video | null>(null);
 
   useEffect(() => {
     getVideos().then(data => {
@@ -52,6 +53,7 @@ export default function MobileVideos() {
               className="rounded-xl overflow-hidden"
               style={{ background: 'rgba(255,255,255,0.04)' }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => setPlayingVideo(video)}
             >
               {/* 缩略图 */}
               <div className="relative aspect-video">
@@ -94,6 +96,62 @@ export default function MobileVideos() {
           ))}
         </div>
       )}
+
+      {/* 视频播放弹窗 */}
+      <AnimatePresence>
+        {playingVideo && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex flex-col bg-black"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* 顶部栏 */}
+            <div className="flex items-center justify-between px-4 py-3 bg-black/80">
+              <motion.button
+                onClick={() => setPlayingVideo(null)}
+                className="p-2 -ml-2"
+                whileTap={{ scale: 0.9 }}
+              >
+                <X className="w-5 h-5 text-white/70" />
+              </motion.button>
+              <span className="text-sm font-medium text-white truncate max-w-[200px]">
+                {playingVideo.title}
+              </span>
+              <div className="w-9" />
+            </div>
+
+            {/* 视频播放器 */}
+            <div className="flex-1 flex items-center justify-center px-4">
+              {playingVideo.videoFile || playingVideo.url ? (
+                <video
+                  key={playingVideo.id}
+                  src={playingVideo.videoFile || playingVideo.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full rounded-xl"
+                  style={{ maxHeight: '70vh' }}
+                />
+              ) : (
+                <div className="text-center">
+                  <Play className="w-16 h-16 text-[#A991FF]/40 mx-auto mb-4" />
+                  <p className="text-sm text-[#C7B8FF]/50">视频源不可用</p>
+                </div>
+              )}
+            </div>
+
+            {/* 底部信息 */}
+            <div className="px-4 py-3">
+              <h3 className="text-base font-medium text-white mb-1">{playingVideo.title}</h3>
+              {playingVideo.description && (
+                <p className="text-xs text-[#C7B8FF]/50 leading-relaxed">{playingVideo.description}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
