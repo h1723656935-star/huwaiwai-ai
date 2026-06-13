@@ -1251,10 +1251,21 @@ export default function AdminPage() {
                   <Icons.Eye className="w-4 h-4 inline mr-1" />预览
                 </ThemedButton>
                 <ThemedButton
-                  type="submit"
                   onClick={() => {
-                    const form = worksTab === 'image' ? document.querySelector('form') : document.querySelector('form');
-                    if (form) form.requestSubmit();
+                    // iOS Safari 兼容：直接调用提交函数，不用 requestSubmit()
+                    if (worksTab === 'image') {
+                      const form = document.querySelector('form') as HTMLFormElement;
+                      if (form) {
+                        const event = new Event('submit', { bubbles: true, cancelable: true });
+                        if (form.dispatchEvent(event)) handleImageSubmit(event as any);
+                      }
+                    } else {
+                      const form = document.querySelectorAll('form')[1] as HTMLFormElement;
+                      if (form) {
+                        const event = new Event('submit', { bubbles: true, cancelable: true });
+                        if (form.dispatchEvent(event)) handleVideoSubmit(event as any);
+                      }
+                    }
                   }}
                   disabled={uploading}
                   variant="gradient"
