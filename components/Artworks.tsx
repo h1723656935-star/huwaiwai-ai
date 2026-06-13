@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Copy, Check, X, Sparkles, Heart, Bookmark, Eye } from 'lucide-react';
 import { getArtworks } from '@/lib/worksService';
 import type { Artwork } from '@/lib/worksService';
 
@@ -179,9 +180,38 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
 
 export default function Artworks() {
   const [activeCategory, setActiveCategory] = useState('全部');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedWork, setSelectedWork] = useState<Artwork | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // 复制到剪贴板
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
+  };
+
+  // 当弹窗打开时，初始化点赞/收藏状态
+  useEffect(() => {
+    if (selectedWork) {
+      setIsLiked(selectedWork.liked || false);
+      setIsBookmarked(false);
+    }
+  }, [selectedWork]);
 
   useEffect(() => {
     fetchArtworks();
@@ -327,7 +357,7 @@ export default function Artworks() {
                 key={work.id}
                 work={work}
                 index={index}
-                onClick={() => setSelectedImage(work.image)}
+                onClick={() => setSelectedWork(work)}
               />
             ))}
           </motion.div>
@@ -345,45 +375,299 @@ export default function Artworks() {
       </div>
 
       <AnimatePresence>
-        {selectedImage && (
+        {selectedWork && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 bg-dark/95 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+            style={{ background: 'rgba(13, 10, 24, 0.92)', backdropFilter: 'blur(16px)' }}
+            onClick={() => setSelectedWork(null)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative max-w-5xl max-h-[90vh]"
+              className="relative w-full max-w-7xl h-[90vh] max-h-[900px] rounded-2xl overflow-hidden flex flex-col md:flex-row"
+              style={{
+                background: 'linear-gradient(180deg, #1A1628 0%, #120F1F 100%)',
+                boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(120, 101, 248, 0.1)',
+                border: '1px solid rgba(120, 101, 248, 0.2)',
+              }}
             >
-              <motion.img
-                src={selectedImage}
-                alt="Preview"
-                className="rounded-2xl max-w-full max-h-[90vh] object-contain shadow-2xl"
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.4 }}
-              />
-              
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-4 -right-4 w-10 h-10 rounded-full glass flex items-center justify-center"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setSelectedWork(null)}
+                className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'rgba(13, 10, 24, 0.85)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(120, 101, 248, 0.3)',
+                  color: '#ECE7FF',
+                }}
               >
-                <svg className="w-5 h-5 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </motion.button>
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* ============ 左侧：大图 (65%) ============ */}
+              <div
+                className="md:flex-[1.857] flex-shrink-0 flex items-center justify-center p-6 md:p-8"
+                style={{ background: 'rgba(0, 0, 0, 0.4)' }}
+              >
+                <motion.img
+                  src={selectedWork.image}
+                  alt={selectedWork.title}
+                  className="w-full h-full max-h-full object-contain rounded-xl"
+                  style={{ maxHeight: 'calc(90vh - 64px)' }}
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+
+              {/* ============ 右侧：作品信息 (35%) ============ */}
+              <div
+                className="md:flex-1 md:max-w-md flex-shrink-0 overflow-y-auto p-6 md:p-8 space-y-5"
+                style={{
+                  borderLeft: '1px solid rgba(120, 101, 248, 0.12)',
+                  background: 'rgba(13, 10, 24, 0.5)',
+                }}
+              >
+                {/* 标题 */}
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-3"
+                    style={{
+                      background: 'linear-gradient(135deg, #ECE7FF 0%, #A991FF 50%, #7865F8 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {selectedWork.title}
+                  </h2>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedWork.categories && selectedWork.categories.length > 0
+                      ? selectedWork.categories
+                      : selectedWork.category
+                        ? [selectedWork.category]
+                        : []
+                    ).map((cat) => (
+                      <span
+                        key={cat}
+                        className="px-2.5 py-0.5 rounded-full text-[10px] font-medium"
+                        style={{
+                          background: 'rgba(120, 101, 248, 0.15)',
+                          color: '#A991FF',
+                          border: '1px solid rgba(120, 101, 248, 0.3)',
+                        }}
+                      >
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 描述 */}
+                {selectedWork.description && (
+                  <p className="text-sm leading-relaxed" style={{ color: '#C7B8FF' }}>
+                    {selectedWork.description}
+                  </p>
+                )}
+
+                {/* 互动按钮 */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsLiked(!isLiked)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                    style={{
+                      background: isLiked ? 'rgba(255, 118, 118, 0.15)' : 'rgba(120, 101, 248, 0.1)',
+                      border: `1px solid ${isLiked ? 'rgba(255, 118, 118, 0.4)' : 'rgba(120, 101, 248, 0.25)'}`,
+                      color: isLiked ? '#FF7676' : '#ECE7FF',
+                    }}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                    <span>{(selectedWork.likes || 0) + (isLiked && !selectedWork.liked ? 1 : 0)}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsBookmarked(!isBookmarked)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                    style={{
+                      background: isBookmarked ? 'rgba(120, 101, 248, 0.2)' : 'rgba(120, 101, 248, 0.08)',
+                      border: `1px solid ${isBookmarked ? 'rgba(120, 101, 248, 0.4)' : 'rgba(120, 101, 248, 0.2)'}`,
+                      color: '#A991FF',
+                    }}
+                  >
+                    <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
+                    <span>收藏</span>
+                  </button>
+                  <a
+                    href={`/artwork/${selectedWork.id}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                    style={{
+                      background: 'rgba(120, 101, 248, 0.08)',
+                      border: '1px solid rgba(120, 101, 248, 0.2)',
+                      color: '#ECE7FF',
+                    }}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>详情页</span>
+                  </a>
+                </div>
+
+                {/* 创作信息 */}
+                {(selectedWork.model || selectedWork.dimensions || (selectedWork.tags && selectedWork.tags.length > 0)) && (
+                  <div
+                    className="rounded-xl p-3 space-y-2"
+                    style={{
+                      background: 'rgba(120, 101, 248, 0.05)',
+                      border: '1px solid rgba(120, 101, 248, 0.12)',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" style={{ color: '#A991FF' }} />
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold" style={{ color: '#A991FF' }}>
+                        创作信息
+                      </p>
+                    </div>
+                    {selectedWork.model && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: 'rgba(199, 184, 255, 0.7)' }}>模型</span>
+                        <span style={{ color: '#ECE7FF' }}>{selectedWork.model}</span>
+                      </div>
+                    )}
+                    {selectedWork.dimensions && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: 'rgba(199, 184, 255, 0.7)' }}>尺寸</span>
+                        <span style={{ color: '#ECE7FF' }}>{selectedWork.dimensions}</span>
+                      </div>
+                    )}
+                    {selectedWork.date && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: 'rgba(199, 184, 255, 0.7)' }}>日期</span>
+                        <span style={{ color: '#ECE7FF' }}>{selectedWork.date}</span>
+                      </div>
+                    )}
+                    {selectedWork.tags && selectedWork.tags.length > 0 && (
+                      <div className="flex items-start justify-between text-xs gap-2">
+                        <span style={{ color: 'rgba(199, 184, 255, 0.7)' }}>标签</span>
+                        <div className="flex flex-wrap gap-1 justify-end max-w-[60%]">
+                          {selectedWork.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-1.5 py-0.5 rounded text-[10px]"
+                              style={{
+                                background: 'rgba(120, 101, 248, 0.15)',
+                                color: '#A991FF',
+                              }}
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 正向 Prompt */}
+                {selectedWork.prompt && (
+                  <div
+                    className="rounded-xl p-3"
+                    style={{
+                      background: 'rgba(13, 10, 24, 0.6)',
+                      border: '1px solid rgba(120, 101, 248, 0.15)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold" style={{ color: '#A991FF' }}>
+                        Positive Prompt
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(selectedWork.prompt!, 'positive')}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]"
+                        style={{
+                          background: copiedField === 'positive' ? 'rgba(120, 101, 248, 0.2)' : 'rgba(120, 101, 248, 0.08)',
+                          color: copiedField === 'positive' ? '#A991FF' : 'rgba(199, 184, 255, 0.8)',
+                          border: '1px solid rgba(120, 101, 248, 0.25)',
+                        }}
+                      >
+                        {copiedField === 'positive' ? (
+                          <><Check className="w-3 h-3" /> 已复制</>
+                        ) : (
+                          <><Copy className="w-3 h-3" /> 复制</>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed font-mono" style={{ color: 'rgba(236, 231, 255, 0.85)' }}>
+                      {selectedWork.prompt}
+                    </p>
+                  </div>
+                )}
+
+                {/* 负向 Prompt */}
+                {selectedWork.negativePrompt && (
+                  <div
+                    className="rounded-xl p-3"
+                    style={{
+                      background: 'rgba(255, 120, 120, 0.04)',
+                      border: '1px solid rgba(255, 120, 120, 0.15)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-semibold" style={{ color: '#FF7878' }}>
+                        Negative Prompt
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(selectedWork.negativePrompt!, 'negative')}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]"
+                        style={{
+                          background: copiedField === 'negative' ? 'rgba(255, 120, 120, 0.2)' : 'rgba(120, 101, 248, 0.08)',
+                          color: copiedField === 'negative' ? '#FF7878' : 'rgba(199, 184, 255, 0.8)',
+                          border: '1px solid rgba(255, 120, 120, 0.3)',
+                        }}
+                      >
+                        {copiedField === 'negative' ? (
+                          <><Check className="w-3 h-3" /> 已复制</>
+                        ) : (
+                          <><Copy className="w-3 h-3" /> 复制</>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed font-mono" style={{ color: 'rgba(236, 231, 255, 0.7)' }}>
+                      {selectedWork.negativePrompt}
+                    </p>
+                  </div>
+                )}
+
+                {/* 提示：没有完整信息时显示 */}
+                {!selectedWork.prompt && !selectedWork.description && !selectedWork.model && (
+                  <div
+                    className="rounded-xl p-4 text-center"
+                    style={{
+                      background: 'rgba(120, 101, 248, 0.05)',
+                      border: '1px dashed rgba(120, 101, 248, 0.2)',
+                    }}
+                  >
+                    <Sparkles className="w-6 h-6 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                    <p className="text-xs" style={{ color: 'rgba(199, 184, 255, 0.7)' }}>
+                      该作品暂无详细创作信息
+                    </p>
+                    <a
+                      href={`/artwork/${selectedWork.id}`}
+                      className="inline-block mt-2 text-xs"
+                      style={{ color: '#A991FF', textDecoration: 'underline' }}
+                    >
+                      在详情页查看完整信息 →
+                    </a>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
