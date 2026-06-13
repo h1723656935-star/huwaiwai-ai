@@ -627,6 +627,10 @@ export default function AdminPage() {
       setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
       setImagePreview(null);
       loadAllData();
+      // 通知首页刷新
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('artworks-updated'));
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
       const message = error?.message || String(error);
@@ -676,6 +680,9 @@ export default function AdminPage() {
       setVideoThumbnailPreview(null);
       setVideoPreview(null);
       loadAllData();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('artworks-updated'));
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
       const message = error?.message || String(error);
@@ -706,6 +713,9 @@ export default function AdminPage() {
         setImagePreview(null);
       }
       alert('删除成功！');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('artworks-updated'));
+      }
     } catch (error) {
       alert('删除失败，请重试');
     }
@@ -770,6 +780,9 @@ export default function AdminPage() {
         setVideoPreview(null);
       }
       alert('删除成功！');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('artworks-updated'));
+      }
     } catch (error) {
       alert('删除失败，请重试');
     }

@@ -6,6 +6,46 @@ import { Copy, Check, X, Sparkles, Heart, Bookmark, Eye } from 'lucide-react';
 import { getArtworks } from '@/lib/worksService';
 import type { Artwork } from '@/lib/worksService';
 
+// 标签配色方案 - 让不同标签有不同颜色突出
+const TAG_PALETTE = [
+  { bg: 'rgba(120, 101, 248, 0.95)', text: '#FFFFFF', shadow: 'rgba(120, 101, 248, 0.4)' },     // 紫 #7865F8
+  { bg: 'rgba(236, 72, 153, 0.95)', text: '#FFFFFF', shadow: 'rgba(236, 72, 153, 0.4)' },          // 粉 #EC4899
+  { bg: 'rgba(34, 197, 94, 0.95)', text: '#FFFFFF', shadow: 'rgba(34, 197, 94, 0.4)' },            // 绿 #22C55E
+  { bg: 'rgba(251, 146, 60, 0.95)', text: '#FFFFFF', shadow: 'rgba(251, 146, 60, 0.4)' },          // 橙 #FB923C
+  { bg: 'rgba(14, 165, 233, 0.95)', text: '#FFFFFF', shadow: 'rgba(14, 165, 233, 0.4)' },          // 蓝 #0EA5E9
+  { bg: 'rgba(168, 85, 247, 0.95)', text: '#FFFFFF', shadow: 'rgba(168, 85, 247, 0.4)' },          // 紫红 #A855F7
+  { bg: 'rgba(245, 158, 11, 0.95)', text: '#1A1628', shadow: 'rgba(245, 158, 11, 0.4)' },          // 黄 #F59E0B
+  { bg: 'rgba(244, 63, 94, 0.95)', text: '#FFFFFF', shadow: 'rgba(244, 63, 94, 0.4)' },            // 玫红 #F43F5E
+  { bg: 'rgba(20, 184, 166, 0.95)', text: '#FFFFFF', shadow: 'rgba(20, 184, 166, 0.4)' },          // 青 #14B8A6
+  { bg: 'rgba(99, 102, 241, 0.95)', text: '#FFFFFF', shadow: 'rgba(99, 102, 241, 0.4)' },          // 蓝紫 #6366F1
+];
+
+// 分类配色（用于作品分类）
+const CATEGORY_PALETTE = [
+  { bg: 'rgba(120, 101, 248, 0.9)', text: '#FFFFFF' },   // 紫色
+  { bg: 'rgba(34, 197, 94, 0.9)', text: '#FFFFFF' },     // 绿色
+  { bg: 'rgba(251, 146, 60, 0.9)', text: '#FFFFFF' },    // 橙色
+  { bg: 'rgba(14, 165, 233, 0.9)', text: '#FFFFFF' },    // 蓝色
+  { bg: 'rgba(236, 72, 153, 0.9)', text: '#FFFFFF' },    // 粉色
+];
+
+// 基于字符串 hash 稳定地选择一个颜色
+function hashIndex(str: string, modulo: number): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % modulo;
+}
+
+function getTagColor(tag: string) {
+  return TAG_PALETTE[hashIndex(tag, TAG_PALETTE.length)];
+}
+
+function getCategoryColor(category: string) {
+  return CATEGORY_PALETTE[hashIndex(category, CATEGORY_PALETTE.length)];
+}
+
 interface CardProps {
   work: Artwork;
   index: number;
@@ -111,33 +151,40 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
               : work.category
                 ? [work.category]
                 : []
-            ).map((cat) => (
-              <span
-                key={cat}
-                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{
-                  background: 'rgba(120, 101, 248, 0.85)',
-                  backdropFilter: 'blur(8px)',
-                  color: '#FFFFFF',
-                }}
-              >
-                {cat}
-              </span>
-            ))}
-            {work.tags && work.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  backdropFilter: 'blur(8px)',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                }}
-              >
-                #{tag}
-              </span>
-            ))}
+            ).map((cat) => {
+              const color = getCategoryColor(cat);
+              return (
+                <span
+                  key={cat}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: color.bg,
+                    backdropFilter: 'blur(8px)',
+                    color: color.text,
+                    boxShadow: `0 2px 8px ${color.bg.replace('0.9', '0.3')}`,
+                  }}
+                >
+                  {cat}
+                </span>
+              );
+            })}
+            {work.tags && work.tags.slice(0, 2).map((tag) => {
+              const color = getTagColor(tag);
+              return (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: color.bg,
+                    backdropFilter: 'blur(8px)',
+                    color: color.text,
+                    boxShadow: `0 2px 8px ${color.shadow}`,
+                  }}
+                >
+                  #{tag}
+                </span>
+              );
+            })}
           </div>
         </motion.div>
       </div>
@@ -152,25 +199,76 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
         </motion.h3>
         {work.categories && work.categories.length > 0 ? (
           <motion.div
-            className="flex items-center gap-2 mt-2 flex-wrap"
+            className="flex items-center gap-1.5 mt-2 flex-wrap"
             animate={{ x: isHovered ? 4 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            {work.categories.map((cat) => (
-              <span key={cat} className="px-2.5 py-1 bg-primary/15 text-secondary rounded-full text-xs font-medium">
-                {cat}
-              </span>
-            ))}
+            {work.categories.map((cat) => {
+              const color = getCategoryColor(cat);
+              return (
+                <span
+                  key={cat}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: color.bg.replace('0.9', '0.15'),
+                    color: color.bg.replace('0.9', '1'),
+                  }}
+                >
+                  {cat}
+                </span>
+              );
+            })}
+            {work.tags && work.tags.slice(0, 3).map((tag) => {
+              const color = getTagColor(tag);
+              return (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                  style={{
+                    background: color.bg.replace('0.95', '0.12'),
+                    color: color.bg.replace('0.95', '1'),
+                  }}
+                >
+                  #{tag}
+                </span>
+              );
+            })}
           </motion.div>
         ) : work.category ? (
           <motion.div
-            className="flex items-center gap-2 mt-2"
+            className="flex items-center gap-1.5 mt-2 flex-wrap"
             animate={{ x: isHovered ? 4 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            <span className="px-2.5 py-1 bg-primary/15 text-secondary rounded-full text-xs font-medium">
-              {work.category}
-            </span>
+            {(() => {
+              const color = getCategoryColor(work.category);
+              return (
+                <span
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: color.bg.replace('0.9', '0.15'),
+                    color: color.bg.replace('0.9', '1'),
+                  }}
+                >
+                  {work.category}
+                </span>
+              );
+            })()}
+            {work.tags && work.tags.slice(0, 3).map((tag) => {
+              const color = getTagColor(tag);
+              return (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                  style={{
+                    background: color.bg.replace('0.95', '0.12'),
+                    color: color.bg.replace('0.95', '1'),
+                  }}
+                >
+                  #{tag}
+                </span>
+              );
+            })}
           </motion.div>
         ) : null}
       </div>
@@ -215,6 +313,20 @@ export default function Artworks() {
 
   useEffect(() => {
     fetchArtworks();
+  }, []);
+
+  // 监听上传事件 - admin 上传/编辑/删除后自动刷新首页
+  useEffect(() => {
+    const handleArtworksUpdated = () => {
+      fetchArtworks();
+    };
+    window.addEventListener('artworks-updated', handleArtworksUpdated);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'userArtworks' || e.key === null) fetchArtworks();
+    });
+    return () => {
+      window.removeEventListener('artworks-updated', handleArtworksUpdated);
+    };
   }, []);
 
   const fetchArtworks = async () => {
@@ -457,19 +569,22 @@ export default function Artworks() {
                       : selectedWork.category
                         ? [selectedWork.category]
                         : []
-                    ).map((cat) => (
-                      <span
-                        key={cat}
-                        className="px-2.5 py-0.5 rounded-full text-[10px] font-medium"
-                        style={{
-                          background: 'rgba(120, 101, 248, 0.15)',
-                          color: '#A991FF',
-                          border: '1px solid rgba(120, 101, 248, 0.3)',
-                        }}
-                      >
-                        {cat}
-                      </span>
-                    ))}
+                    ).map((cat) => {
+                      const color = getCategoryColor(cat);
+                      return (
+                        <span
+                          key={cat}
+                          className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                          style={{
+                            background: color.bg,
+                            color: color.text,
+                            boxShadow: `0 2px 8px ${color.bg.replace('0.9', '0.3')}`,
+                          }}
+                        >
+                          {cat}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -557,18 +672,21 @@ export default function Artworks() {
                       <div className="flex items-start justify-between text-xs gap-2">
                         <span style={{ color: 'rgba(199, 184, 255, 0.7)' }}>标签</span>
                         <div className="flex flex-wrap gap-1 justify-end max-w-[60%]">
-                          {selectedWork.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-1.5 py-0.5 rounded text-[10px]"
-                              style={{
-                                background: 'rgba(120, 101, 248, 0.15)',
-                                color: '#A991FF',
-                              }}
-                            >
-                              #{tag}
-                            </span>
-                          ))}
+                          {selectedWork.tags.map((tag) => {
+                            const color = getTagColor(tag);
+                            return (
+                              <span
+                                key={tag}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                style={{
+                                  background: color.bg,
+                                  color: color.text,
+                                }}
+                              >
+                                #{tag}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
