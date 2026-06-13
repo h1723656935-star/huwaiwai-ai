@@ -468,7 +468,7 @@
 /* ====== 移动端全局样式 ====== */
 @media (max-width: 767px) {
   /* 移除点击高亮 */
-  * {
+  body {
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -479,9 +479,7 @@
   }
 
   /* 移动端隐藏自定义光标 */
-  .custom-cursor-active *,
-  .custom-cursor-active *::before,
-  .custom-cursor-active *::after {
+  .custom-cursor-active {
     cursor: auto !important;
   }
 
@@ -493,6 +491,7 @@
   /* 移动端图片浏览优化 */
   img {
     -webkit-user-drag: none;
+    -webkit-user-select: none;
     user-select: none;
   }
 

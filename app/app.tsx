@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -14,14 +14,11 @@ import CustomCursor from '@/components/CustomCursor';
 import MouseGlow from '@/components/MouseGlow';
 import MobileLayout from '@/components/MobileLayout';
 
-export default function App() {
-  const isMobile = useIsMobile(768);
+// PC 端布局组件（独立拆分，避免 hooks 在条件渲染前调用）
+function DesktopLayout() {
   const [showIntro, setShowIntro] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll();
-  
-  const parallaxY = useTransform(scrollYProgress, [0, 0.3], [0, 100]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,33 +47,14 @@ export default function App() {
     },
   };
 
-  // 移动端使用独立布局
-  if (isMobile) {
-    return <MobileLayout />;
-  }
-
-  // PC 端保持原有布局
   return (
     <div
       ref={containerRef}
       className={`min-h-screen bg-background overflow-x-hidden custom-cursor-active`}
     >
       {isLoaded && <CustomCursor />}
-      
-      <MouseGlow />
 
-      <motion.div
-        className="fixed inset-0 pointer-events-none z-[5]"
-        style={{ y: parallaxY }}
-      >
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at 30% 0%, rgba(120, 101, 248, 0.08) 0%, transparent 50%)',
-            backgroundAttachment: 'fixed',
-          }}
-        />
-      </motion.div>
+      <MouseGlow />
 
       <AnimatePresence>
         {showIntro && (
@@ -120,4 +98,14 @@ export default function App() {
       <MoliCharacter />
     </div>
   );
+}
+
+export default function App() {
+  const isMobile = useIsMobile(768);
+
+  if (isMobile) {
+    return <MobileLayout />;
+  }
+
+  return <DesktopLayout />;
 }
