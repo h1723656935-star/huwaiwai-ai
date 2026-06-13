@@ -179,8 +179,9 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
   } catch (error) {
     console.error('Error creating artwork:', error);
     // localStorage 兜底 - 保存完整数据包括 prompt 等
+    // 用 "local-" 前缀明确标识是本地作品（区别于 Supabase 真实 id）
     const fallbackArtwork: Artwork = {
-      id: Date.now().toString(),
+      id: `local-${Date.now()}`,
       title: artwork.title,
       category: artwork.category,
       categories: artwork.categories || (artwork.category ? [artwork.category] : []),

@@ -608,8 +608,11 @@ export default function AdminPage() {
       const tagsArray = imageForm.tags.split(',').map(tag => tag.trim()).filter(Boolean);
       const primaryCategory = imageForm.categories[0] || '二次元';
 
+      // 如果是 localStorage 本地作品（id 以 "local-" 开头），转为创建新作品
+      const isLocalArtwork = editingArtwork && editingArtwork.id?.toString().startsWith('local-');
+
       let result: any = null;
-      if (editingArtwork) {
+      if (editingArtwork && !isLocalArtwork) {
         result = await worksService.updateArtwork(editingArtwork.id, {
           title: imageForm.title,
           category: primaryCategory,
@@ -624,6 +627,7 @@ export default function AdminPage() {
         });
         setEditingArtwork(null);
       } else {
+        // 创建新作品（本地作品也走这条路径）
         result = await worksService.createArtwork({
           title: imageForm.title,
           category: primaryCategory,
@@ -637,6 +641,9 @@ export default function AdminPage() {
           dimensions: imageForm.dimensions,
           description: imageForm.description,
         });
+        if (isLocalArtwork) {
+          setEditingArtwork(null);
+        }
       }
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
@@ -694,6 +701,18 @@ export default function AdminPage() {
         alert('上传失败：Supabase 密钥无效，请检查环境变量配置。');
       } else if (message.includes('row-level') || message.includes('permission') || message.includes('policy')) {
         alert('上传失败：Supabase 权限不足，请检查数据库和存储的 RLS 策略。');
+      } else if (error?.code === 'PGRST116' || message.includes('0 rows') || message.includes('Cannot coerce the result')) {
+        // 编辑时找不到对应行 - 通常是 localStorage 本地作品的 id
+        if (editingArtwork) {
+          alert(
+            '⚠️ 找不到要更新的作品（可能仅存于本地）。\n\n' +
+            '点击"取消编辑"，然后重新上传此作品。'
+          );
+          setEditingArtwork(null);
+          return;
+        } else {
+          alert('上传失败：数据库返回空结果。\n\n可能作品已被删除，请刷新页面重试。');
+        }
       } else if (message.includes('network') || message.includes('fetch') || message.includes('Failed to fetch')) {
         alert('上传失败：网络连接问题，请检查网络后重试。');
       } else {
@@ -1189,24 +1208,39 @@ export default function AdminPage() {
                   <form onSubmit={handleImageSubmit} className="space-y-4">
                     {editingArtwork && (
                       <div
-                        className="flex items-center justify-between p-3 rounded-xl"
+                        className="flex flex-col gap-2 p-3 rounded-xl"
                         style={{
-                          background: 'rgba(120, 101, 248, 0.1)',
-                          border: '1px solid rgba(120, 101, 248, 0.3)',
+                          background: editingArtwork.id?.toString().startsWith('local-')
+                            ? 'rgba(255, 153, 0, 0.1)'
+                            : 'rgba(120, 101, 248, 0.1)',
+                          border: `1px solid ${
+                            editingArtwork.id?.toString().startsWith('local-')
+                              ? 'rgba(255, 153, 0, 0.3)'
+                              : 'rgba(120, 101, 248, 0.3)'
+                          }`,
                         }}
                       >
-                        <span className="text-sm font-medium" style={{ color: '#A991FF' }}>
-                          <Icons.Edit3 className="w-4 h-4 inline-block mr-1" />
-                          正在编辑：{editingArtwork.title}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleCancelEdit}
-                          className="text-xs px-3 py-1 rounded-full transition-all"
-                          style={THEME.ghostBtn}
-                        >
-                          取消编辑
-                        </button>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium" style={{
+                            color: editingArtwork.id?.toString().startsWith('local-') ? '#FFA940' : '#A991FF'
+                          }}>
+                            <Icons.Edit3 className="w-4 h-4 inline-block mr-1" />
+                            正在编辑：{editingArtwork.title}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="text-xs px-3 py-1 rounded-full transition-all"
+                            style={THEME.ghostBtn}
+                          >
+                            取消编辑
+                          </button>
+                        </div>
+                        {editingArtwork.id?.toString().startsWith('local-') && (
+                          <div className="text-xs" style={{ color: '#FFA940' }}>
+                            ⚠️ 此作品仅存于本地浏览器（未上传到服务器），保存将创建为新作品
+                          </div>
+                        )}
                       </div>
                     )}
                     <ThemedInput
