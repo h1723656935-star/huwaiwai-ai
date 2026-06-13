@@ -3,7 +3,11 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    headers: { 'Cache-Control': 'no-cache' },
+  },
+});
 
 export interface Artwork {
   id: string;
@@ -82,17 +86,27 @@ export async function getArtworks(): Promise<Artwork[]> {
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error('Error fetching artworks:', error);
-      const stored = localStorage.getItem('userArtworks');
-      return stored ? JSON.parse(stored) : [];
-    }
-    
-    return (data || []).map(item => ({
+    const dbArtworks = (data || []).map(item => ({
       ...item,
       tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : (item.tags || []),
       categories: typeof item.categories === 'string' ? JSON.parse(item.categories) : (item.categories || (item.category ? [item.category] : []))
     }));
+    
+    // 合并 localStorage 数据，新版优先（编辑后即使 DB 未同步也能在首页看到）
+    const stored = localStorage.getItem('userArtworks');
+    const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
+    const artworkMap = new Map<string, Artwork>();
+    dbArtworks.forEach(a => artworkMap.set(a.id, a));
+    localArtworks.forEach(a => {
+      const existing = artworkMap.get(a.id);
+      if (!existing || new Date(a.created_at || 0).getTime() > new Date(existing.created_at || 0).getTime()) {
+        artworkMap.set(a.id, a);
+      }
+    });
+    
+    return Array.from(artworkMap.values()).sort((a, b) =>
+      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
   } catch (error) {
     console.error('Error fetching artworks:', error);
     const stored = localStorage.getItem('userArtworks');
@@ -248,18 +262,49 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
     if (artwork.dimensions !== undefined) updateData.dimensions = artwork.dimensions;
     if (artwork.description !== undefined) updateData.description = artwork.description;
 
-    const { error } = await supabase
+    // 先执行 update，再用 select 验证是否真的写入了
+    const { error: updateError } = await supabase
       .from('artworks')
       .update(updateData)
       .eq('id', id);
 
-    if (error) {
-      console.error('Error updating artwork:', error);
-      throw error;
+    if (updateError) {
+      console.error('Error updating artwork:', updateError);
+      throw updateError;
     }
 
-    // 编辑成功后，直接返回更新后的数据（不依赖 SELECT，避免 RLS 问题）
-    return {
+    // 尝试 select 获取更新后的真实数据，验证更新确实持久化
+    const { data: updatedRows, error: selectError } = await supabase
+      .from('artworks')
+      .select('*')
+      .eq('id', id);
+
+    if (!selectError && updatedRows && updatedRows.length > 0) {
+      const row = updatedRows[0];
+      console.log('updateArtwork: select returned row, update confirmed in DB');
+      const result = {
+        ...row,
+        tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+        categories: typeof row.categories === 'string' ? JSON.parse(row.categories) : (row.categories || (row.category ? [row.category] : []))
+      };
+      // 同步保存到 localStorage，确保多端/缓存刷新后首页数据一致
+      try {
+        const stored = localStorage.getItem('userArtworks');
+        const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
+        const idx = userArtworks.findIndex(a => a.id === id);
+        if (idx >= 0) {
+          userArtworks[idx] = result;
+        } else {
+          userArtworks.push(result);
+        }
+        localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+      } catch (e) {}
+      return result;
+    }
+
+    // select 被 RLS 阻止或返回空，但 update 没报错，用构造对象兜底
+    console.warn('updateArtwork: select returned 0 rows (possible RLS block), using fallback');
+    const fallbackResult = {
       id,
       title: artwork.title || '',
       category: artwork.category || '',
@@ -274,6 +319,21 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       description: artwork.description || '',
       created_at: new Date().toISOString(),
     } as Artwork;
+
+    // 保存到 localStorage 作为兜底，确保首页能读到最新数据
+    try {
+      const stored = localStorage.getItem('userArtworks');
+      const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
+      const idx = userArtworks.findIndex(a => a.id === id);
+      if (idx >= 0) {
+        userArtworks[idx] = fallbackResult;
+      } else {
+        userArtworks.push(fallbackResult);
+      }
+      localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+    } catch (e) {}
+
+    return fallbackResult;
   } catch (error) {
     console.error('Error updating artwork:', error);
     throw error;

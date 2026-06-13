@@ -332,13 +332,8 @@ export default function Artworks() {
   const fetchArtworks = async () => {
     setLoading(true);
     try {
-      const dbArtworks = await getArtworks();
-      const stored = localStorage.getItem('userArtworks');
-      const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
-      const artworkMap = new Map<string, Artwork>();
-      localArtworks.forEach(a => artworkMap.set(a.id, a));
-      dbArtworks.forEach(a => artworkMap.set(a.id, a));
-      setArtworks(Array.from(artworkMap.values()));
+      const data = await getArtworks();
+      setArtworks(data);
     } catch (error) {
       console.error('Failed to fetch artworks:', error);
       const stored = localStorage.getItem('userArtworks');

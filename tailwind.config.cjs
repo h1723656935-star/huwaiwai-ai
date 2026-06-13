@@ -10,13 +10,17 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FF9CCE',
-          light: '#FFB6C1',
-          dark: '#E87BB2',
+          DEFAULT: '#7865F8',
+          light: '#8B78F0',
+          dark: '#624DE3',
         },
-        secondary: '#FFE4F0',
+        secondary: '#A991FF',
         accent: '#A991FF',
-        background: '#FFF8FB',
+        background: '#0A0812',
+        foreground: '#ECE7FF',
+        'foreground-muted': '#C7B8FF',
+        'foreground-subtle': '#9D7CFF',
+        'foreground-dim': '#6B5AC9',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
