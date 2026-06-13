@@ -137,6 +137,11 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     if (artwork.categories && artwork.categories.length > 0) artworkInsert.categories = JSON.stringify(artwork.categories);
     if (artwork.tags && artwork.tags.length > 0) artworkInsert.tags = JSON.stringify(artwork.tags);
     if (artwork.date) artworkInsert.date = artwork.date;
+    if (artwork.prompt) artworkInsert.prompt = artwork.prompt;
+    if (artwork.negativePrompt) artworkInsert.negativePrompt = artwork.negativePrompt;
+    if (artwork.model) artworkInsert.model = artwork.model;
+    if (artwork.dimensions) artworkInsert.dimensions = artwork.dimensions;
+    if (artwork.description) artworkInsert.description = artwork.description;
 
     let { data, error } = await supabase
       .from('artworks')
@@ -144,18 +149,21 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       .select()
       .single();
 
-    // 如果是 categories 列不存在的错误，降级只用 category 重试
-    if (error && (error.message?.includes('categories') || error.code === 'PGRST204')) {
-      console.warn('categories column missing, falling back to category only');
-      const fallbackInsert = { ...artworkInsert };
-      delete fallbackInsert.categories;
-      const retry = await supabase
-        .from('artworks')
-        .insert([fallbackInsert])
-        .select()
-        .single();
-      data = retry.data;
-      error = retry.error;
+    // 如果是 categories / prompt / negativePrompt 等列不存在的错误，逐个降级重试
+    const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
+    let fallbackInsert = { ...artworkInsert };
+    for (const field of optionalFields) {
+      if (error && (error.message?.includes(field) || error.code === 'PGRST204')) {
+        console.warn(`${field} column missing, falling back`);
+        delete fallbackInsert[field];
+        const retry = await supabase
+          .from('artworks')
+          .insert([fallbackInsert])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
     }
     
     if (error) {
@@ -202,6 +210,11 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
     if (artwork.tags !== undefined) updateData.tags = JSON.stringify(artwork.tags);
     if (artwork.date !== undefined) updateData.date = artwork.date;
     if (artwork.image !== undefined) updateData.image = artwork.image;
+    if (artwork.prompt !== undefined) updateData.prompt = artwork.prompt;
+    if (artwork.negativePrompt !== undefined) updateData.negativePrompt = artwork.negativePrompt;
+    if (artwork.model !== undefined) updateData.model = artwork.model;
+    if (artwork.dimensions !== undefined) updateData.dimensions = artwork.dimensions;
+    if (artwork.description !== undefined) updateData.description = artwork.description;
 
     let { data, error } = await supabase
       .from('artworks')
@@ -210,19 +223,22 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       .select()
       .single();
 
-    // 如果是 categories 列不存在的错误，降级只用 category 重试
-    if (error && (error.message?.includes('categories') || error.code === 'PGRST204')) {
-      console.warn('categories column missing, falling back to category only');
-      const fallbackUpdate = { ...updateData };
-      delete fallbackUpdate.categories;
-      const retry = await supabase
-        .from('artworks')
-        .update(fallbackUpdate)
-        .eq('id', id)
-        .select()
-        .single();
-      data = retry.data;
-      error = retry.error;
+    // 如果是 categories / prompt 等列不存在的错误，逐个降级重试
+    const optionalFields = ['categories', 'prompt', 'negativePrompt', 'model', 'dimensions', 'description'];
+    let fallbackUpdate = { ...updateData };
+    for (const field of optionalFields) {
+      if (error && (error.message?.includes(field) || error.code === 'PGRST204')) {
+        console.warn(`${field} column missing, falling back`);
+        delete fallbackUpdate[field];
+        const retry = await supabase
+          .from('artworks')
+          .update(fallbackUpdate)
+          .eq('id', id)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
     }
     
     if (error) {

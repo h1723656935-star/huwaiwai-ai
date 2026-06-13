@@ -386,6 +386,47 @@ export default function ArtworkDetail({ params }: DetailPageProps) {
                 </p>
               )}
 
+              {/* 提示词预览（右侧） */}
+              {artwork.prompt && (
+                <div
+                  className="rounded-2xl p-4"
+                  style={{
+                    ...THEME.glass,
+                    boxShadow: THEME.shadow.sm,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-4 rounded-full" style={{ background: THEME.primary }} />
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-medium" style={{ color: THEME.primary }}>
+                        Prompt
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(artwork.prompt!, 'prompt-side')}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors"
+                      style={{
+                        background: copiedField === 'prompt-side' ? `${THEME.primary}15` : 'rgba(120, 101, 248, 0.05)',
+                        color: copiedField === 'prompt-side' ? THEME.primary : THEME.text.secondary,
+                        border: `1px solid ${copiedField === 'prompt-side' ? `${THEME.primary}40` : THEME.border}`,
+                      }}
+                    >
+                      {copiedField === 'prompt-side' ? (
+                        <><Check className="w-3 h-3" /> 已复制</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> 复制</>
+                      )}
+                    </button>
+                  </div>
+                  <p
+                    className="text-[13px] leading-relaxed font-mono line-clamp-4"
+                    style={{ color: THEME.text.secondary }}
+                  >
+                    {artwork.prompt}
+                  </p>
+                </div>
+              )}
+
               {/* 互动操作 */}
               <div className="flex items-center gap-2.5">
                 <motion.button

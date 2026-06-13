@@ -12,6 +12,11 @@ interface ArtworkForm {
   tags: string;
   date: string;
   image: string;
+  prompt: string;
+  negativePrompt: string;
+  model: string;
+  dimensions: string;
+  description: string;
 }
 
 interface VideoForm {
@@ -290,6 +295,11 @@ export default function AdminPage() {
     tags: '',
     date: new Date().toISOString().split('T')[0],
     image: '',
+    prompt: '',
+    negativePrompt: '',
+    model: '',
+    dimensions: '',
+    description: '',
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
@@ -582,7 +592,7 @@ export default function AdminPage() {
     try {
       const tagsArray = imageForm.tags.split(',').map(tag => tag.trim()).filter(Boolean);
       const primaryCategory = imageForm.categories[0] || '二次元';
-      
+
       if (editingArtwork) {
         await worksService.updateArtwork(editingArtwork.id, {
           title: imageForm.title,
@@ -590,6 +600,11 @@ export default function AdminPage() {
           categories: imageForm.categories,
           tags: tagsArray,
           date: imageForm.date,
+          prompt: imageForm.prompt,
+          negativePrompt: imageForm.negativePrompt,
+          model: imageForm.model,
+          dimensions: imageForm.dimensions,
+          description: imageForm.description,
         });
         setEditingArtwork(null);
       } else {
@@ -600,11 +615,16 @@ export default function AdminPage() {
           tags: tagsArray,
           date: imageForm.date,
           image: imageForm.image,
+          prompt: imageForm.prompt,
+          negativePrompt: imageForm.negativePrompt,
+          model: imageForm.model,
+          dimensions: imageForm.dimensions,
+          description: imageForm.description,
         });
       }
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '' });
+      setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
       setImagePreview(null);
       loadAllData();
     } catch (error: any) {
@@ -682,7 +702,7 @@ export default function AdminPage() {
       setUserArtworks(prev => prev.filter(a => a.id !== id));
       if (editingArtwork?.id === id) {
         setEditingArtwork(null);
-        setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '' });
+        setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
         setImagePreview(null);
       }
       alert('删除成功！');
@@ -699,6 +719,11 @@ export default function AdminPage() {
       tags: (artwork.tags || []).join(', '),
       date: artwork.date,
       image: artwork.image,
+      prompt: artwork.prompt || '',
+      negativePrompt: artwork.negativePrompt || '',
+      model: artwork.model || '',
+      dimensions: artwork.dimensions || '',
+      description: artwork.description || '',
     });
     setImagePreview(artwork.image);
     setWorksTab('image');
@@ -709,7 +734,7 @@ export default function AdminPage() {
   const handleCancelEdit = () => {
     setEditingArtwork(null);
     setEditingVideo(null);
-    setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '' });
+    setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '' });
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
     setVideoThumbnailPreview(null);
@@ -1184,6 +1209,84 @@ export default function AdminPage() {
                       value={imageForm.date}
                       onChange={(e) => setImageForm({ ...imageForm, date: e.target.value })}
                     />
+
+                    {/* ============ 作品提示词板块 ============ */}
+                    <div
+                      className="rounded-xl p-4 space-y-3"
+                      style={{
+                        background: 'rgba(120, 101, 248, 0.04)',
+                        border: '1px solid rgba(120, 101, 248, 0.15)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Sparkles className="w-4 h-4" style={{ color: '#A991FF' }} />
+                        <p className="text-sm font-semibold" style={{ color: THEME.text.primary }}>
+                          作品提示词（Prompt）
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>
+                          正向 Prompt
+                        </label>
+                        <ThemedTextarea
+                          value={imageForm.prompt}
+                          onChange={(e) => setImageForm({ ...imageForm, prompt: e.target.value })}
+                          placeholder="描述你想要的画面，例如：masterpiece, best quality, 1girl, white dress..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>
+                          负向 Prompt
+                        </label>
+                        <ThemedTextarea
+                          value={imageForm.negativePrompt}
+                          onChange={(e) => setImageForm({ ...imageForm, negativePrompt: e.target.value })}
+                          placeholder="不希望出现的元素，例如：lowres, bad anatomy, blurry..."
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>
+                            模型
+                          </label>
+                          <ThemedInput
+                            type="text"
+                            value={imageForm.model}
+                            onChange={(e) => setImageForm({ ...imageForm, model: e.target.value })}
+                            placeholder="如：SDXL / Midjourney"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>
+                            尺寸
+                          </label>
+                          <ThemedInput
+                            type="text"
+                            value={imageForm.dimensions}
+                            onChange={(e) => setImageForm({ ...imageForm, dimensions: e.target.value })}
+                            placeholder="如：1024x1536"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>
+                          创作描述（简介）
+                        </label>
+                        <ThemedTextarea
+                          value={imageForm.description}
+                          onChange={(e) => setImageForm({ ...imageForm, description: e.target.value })}
+                          placeholder="这幅作品的创作思路..."
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+
                     {!editingArtwork && (
                       <div
                         className="w-full border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"

@@ -72,7 +72,7 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
         transformStyle: 'preserve-3d',
       }}
     >
-      <div 
+      <div
         className="relative aspect-[4/5] overflow-hidden"
         style={{ transform: 'translateZ(20px)' }}
       >
@@ -83,20 +83,60 @@ function ArtworkCard({ work, index, onClick }: CardProps) {
           animate={{ scale: isHovered ? 1.1 : 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         />
-        
+
+        {/* 底部渐变蒙层 - hover 时显示 */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-t from-dark/80 via-dark/20 to-transparent"
+          className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-dark/95 via-dark/60 to-transparent pointer-events-none"
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.3 }}
         />
 
+        {/* hover 时显示的标签条 - 底部 */}
         <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          animate={{ opacity: isHovered ? 0.8 : 0 }}
-          transition={{ duration: 0.3 }}
+          className="absolute inset-x-0 bottom-0 p-4 pointer-events-none"
+          initial={false}
+          animate={{
+            opacity: isHovered ? 1 : 0,
+            y: isHovered ? 0 : 10,
+          }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          <div className="px-4 py-2 rounded-full glass">
-            <span className="text-sm font-medium text-foreground">查看大图</span>
+          <p className="text-foreground text-sm font-semibold truncate mb-2" style={{ letterSpacing: '-0.01em' }}>
+            {work.title}
+          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(work.categories && work.categories.length > 0
+              ? work.categories
+              : work.category
+                ? [work.category]
+                : []
+            ).map((cat) => (
+              <span
+                key={cat}
+                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  background: 'rgba(120, 101, 248, 0.85)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#FFFFFF',
+                }}
+              >
+                {cat}
+              </span>
+            ))}
+            {work.tags && work.tags.slice(0, 2).map((tag) => (
+              <span
+                key={tag}
+                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(8px)',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                #{tag}
+              </span>
+            ))}
           </div>
         </motion.div>
       </div>
