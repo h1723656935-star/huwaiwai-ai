@@ -178,7 +178,7 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
     };
   } catch (error) {
     console.error('Error creating artwork:', error);
-    // localStorage 配额有限，不存储大的 base64 图片
+    // localStorage 兜底 - 保存完整数据包括 prompt 等
     const fallbackArtwork: Artwork = {
       id: Date.now().toString(),
       title: artwork.title,
@@ -187,6 +187,11 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       tags: artwork.tags,
       date: artwork.date,
       image: artwork.image.startsWith('data:') ? '' : artwork.image,
+      prompt: artwork.prompt,
+      negativePrompt: artwork.negativePrompt,
+      model: artwork.model,
+      dimensions: artwork.dimensions,
+      description: artwork.description,
       created_at: new Date().toISOString(),
     };
     try {

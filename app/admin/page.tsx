@@ -593,8 +593,9 @@ export default function AdminPage() {
       const tagsArray = imageForm.tags.split(',').map(tag => tag.trim()).filter(Boolean);
       const primaryCategory = imageForm.categories[0] || '二次元';
 
+      let result: any = null;
       if (editingArtwork) {
-        await worksService.updateArtwork(editingArtwork.id, {
+        result = await worksService.updateArtwork(editingArtwork.id, {
           title: imageForm.title,
           category: primaryCategory,
           categories: imageForm.categories,
@@ -608,7 +609,7 @@ export default function AdminPage() {
         });
         setEditingArtwork(null);
       } else {
-        await worksService.createArtwork({
+        result = await worksService.createArtwork({
           title: imageForm.title,
           category: primaryCategory,
           categories: imageForm.categories,
@@ -630,6 +631,32 @@ export default function AdminPage() {
       // 通知首页刷新
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('artworks-updated'));
+      }
+      // 检查保存的字段是否完整
+      try {
+        const hasPrompt = !!(result && (result as any).prompt);
+        const hasModel = !!(result && (result as any).model);
+        const hasDimensions = !!(result && (result as any).dimensions);
+        const hasDescription = !!(result && (result as any).description);
+        if (!hasPrompt || !hasModel || !hasDimensions || !hasDescription) {
+          const missing: string[] = [];
+          if (!hasPrompt) missing.push('Prompt');
+          if (!hasModel) missing.push('Model');
+          if (!hasDimensions) missing.push('Dimensions');
+          if (!hasDescription) missing.push('Description');
+          setTimeout(() => {
+            alert(
+              `⚠️ 部分字段未保存到数据库：${missing.join('、')}\n\n` +
+              `原因：Supabase 的 artworks 表缺少这些列。\n\n` +
+              `解决方法：\n` +
+              `1. 打开 Supabase 控制台 → SQL Editor\n` +
+              `2. 执行项目根目录下的 supabase-migration.sql\n` +
+              `3. 添加缺失的字段后重新上传`
+            );
+          }, 500);
+        }
+      } catch (e) {
+        // 静默失败
       }
     } catch (error: any) {
       console.error('Upload error:', error);
