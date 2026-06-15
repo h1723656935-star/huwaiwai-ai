@@ -583,6 +583,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       };
       if (video.description && video.description.trim()) minimalInsert.description = video.description;
       if (video.duration) minimalInsert.duration = video.duration;
+      // orientation 列可能不存在，降级时不包含
 
       const { data: minimalData, error: minimalError } = await supabase
         .from('videos')
@@ -677,6 +678,25 @@ export async function updateVideo(id: string, video: Partial<Video>): Promise<Vi
       .select();
 
     if (error) {
+      // 如果 orientation 列不存在，移除后重试
+      if (error.message?.includes('orientation')) {
+        console.warn('orientation column missing in update, falling back');
+        delete updateData.orientation;
+        const { data: retryData, error: retryError } = await supabase
+          .from('videos')
+          .update(updateData)
+          .eq('id', id)
+          .select();
+        if (retryError) {
+          console.error('Error updating video after fallback:', retryError);
+          throw retryError;
+        }
+        if (retryData && retryData.length > 0) {
+          return retryData[0];
+        }
+        console.warn('updateVideo: select returned 0 rows after fallback');
+        return { id, ...updateData } as Video;
+      }
       console.error('Error updating video:', error);
       throw error;
     }
