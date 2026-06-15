@@ -102,16 +102,23 @@ export async function getArtworks(): Promise<Artwork[]> {
     const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
     const editTimesRaw = localStorage.getItem('artwork_edit_times');
     const editTimes: Record<string, number> = editTimesRaw ? JSON.parse(editTimesRaw) : {};
+    // 获取已删除的作品 ID 列表（DB 删除失败时记录在这里）
+    const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+    const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
+    const deletedSet = new Set(deletedIds);
     const artworkMap = new Map<string, Artwork>();
-    dbArtworks.forEach(a => artworkMap.set(a.id, a));
+    dbArtworks.forEach(a => {
+      if (!deletedSet.has(a.id)) artworkMap.set(a.id, a);
+    });
     // localStorage 中已编辑过的作品覆盖 DB（用户编辑后的本地数据就是真相源）
     localArtworks.forEach(a => {
-      if (editTimes[a.id]) {
-        artworkMap.set(a.id, a);
-      } else {
-        // 未编辑过的，DB 优先
-        if (!artworkMap.has(a.id)) {
+      if (!deletedSet.has(a.id)) {
+        if (editTimes[a.id]) {
           artworkMap.set(a.id, a);
+        } else {
+          if (!artworkMap.has(a.id)) {
+            artworkMap.set(a.id, a);
+          }
         }
       }
     });
@@ -401,21 +408,56 @@ export async function deleteArtwork(id: string): Promise<boolean> {
       .eq('id', id);
     
     if (error) {
-      console.error('Error deleting artwork:', error);
-      throw error;
+      console.error('Error deleting artwork from DB:', error);
+      // DB 删除失败，记录到 localStorage 黑名单
+      try {
+        const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+        const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+        }
+      } catch (e) {}
+      // 同时从 localStorage 中移除
+      const stored = localStorage.getItem('userArtworks');
+      if (stored) {
+        const userArtworks: Artwork[] = JSON.parse(stored);
+        localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
+      }
+      return true;
     }
     
-    return true;
-  } catch (error) {
-    console.error('Error deleting artwork:', error);
+    // DB 删除成功，也记录到黑名单（防止缓存）
+    try {
+      const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+      const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+      }
+    } catch (e) {}
     const stored = localStorage.getItem('userArtworks');
     if (stored) {
       const userArtworks: Artwork[] = JSON.parse(stored);
-      const filtered = userArtworks.filter(artwork => artwork.id !== id);
-      localStorage.setItem('userArtworks', JSON.stringify(filtered));
-      return true;
+      localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
     }
-    return false;
+    return true;
+  } catch (error) {
+    console.error('Error deleting artwork:', error);
+    try {
+      const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+      const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+      }
+      const stored = localStorage.getItem('userArtworks');
+      if (stored) {
+        const userArtworks: Artwork[] = JSON.parse(stored);
+        localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
+      }
+    } catch (e) {}
+    return true;
   }
 }
 
