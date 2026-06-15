@@ -46,17 +46,21 @@ export default function MobileVideos() {
           <p className="text-[#C7B8FF]/40 text-sm">暂无视频</p>
         </div>
       ) : (
-        <div className="px-4 space-y-3">
+        <div className="px-4 grid grid-cols-2 gap-4">
           {videos.map((video) => (
             <motion.div
               key={video.id}
-              className="rounded-xl overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.04)' }}
+              className="rounded-2xl overflow-hidden"
+              style={{ 
+                background: 'rgba(255,255,255,0.04)',
+                boxShadow: '0 4px 16px rgba(120, 101, 248, 0.1)',
+              }}
               whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.05 }}
               onClick={() => setPlayingVideo(video)}
             >
               {/* 缩略图 */}
-              <div className="relative aspect-video">
+              <div className={`relative ${video.orientation === 'vertical' ? 'aspect-[9/16]' : 'aspect-video'}`}>
                 {video.thumbnail ? (
                   <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
                 ) : (
@@ -70,6 +74,7 @@ export default function MobileVideos() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{
                     background: 'rgba(120,101,248,0.9)',
+                    boxShadow: '0 0 20px rgba(120, 101, 248, 0.6)',
                   }}>
                     <Play className="w-6 h-6 text-white ml-1" />
                   </div>
@@ -87,7 +92,7 @@ export default function MobileVideos() {
 
               {/* 信息 */}
               <div className="p-3">
-                <h3 className="text-sm font-medium text-white mb-1">{video.title}</h3>
+                <h3 className="text-sm font-medium text-white mb-1 line-clamp-1">{video.title}</h3>
                 {video.description && (
                   <p className="text-xs text-[#C7B8FF]/50 line-clamp-2">{video.description}</p>
                 )}

@@ -140,13 +140,15 @@ export default function Videos() {
                 transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="card-moli overflow-hidden cursor-pointer hover-lift mobile-optimized video-card"
                 onClick={() => setSelectedVideo(video.videoFile ?? video.url)}
+                whileHover={{ scale: 1.05 }}
+                style={{ borderRadius: '16px', boxShadow: '0 8px 32px rgba(120, 101, 248, 0.15)' }}
               >
-                <div className="relative aspect-video overflow-hidden">
+                <div className={`relative overflow-hidden ${video.orientation === 'vertical' ? 'aspect-[9/16]' : 'aspect-video'}`}>
                   {video.thumbnail && video.thumbnail.length > 0 ? (
                     <img
                       src={video.thumbnail}
                       alt={video.title}
-                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
@@ -166,6 +168,7 @@ export default function Videos() {
                       className="w-14 h-14 rounded-full glass flex items-center justify-center"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
+                      style={{ boxShadow: '0 0 20px rgba(120, 101, 248, 0.6)' }}
                     >
                       <Play className="w-7 h-7 text-primary-light ml-1" fill="currentColor" />
                     </motion.div>

@@ -28,6 +28,7 @@ interface VideoForm {
   url: string;
   videoFile: string;
   category: string;
+  orientation: 'auto' | 'vertical' | 'horizontal';
 }
 
 interface SkillForm { name: string; level: string; }
@@ -290,7 +291,7 @@ export default function AdminPage() {
 
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [videoForm, setVideoForm] = useState<VideoForm>({
-    title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元',
+    title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto',
   });
   const [videoThumbnailPreview, setVideoThumbnailPreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -527,20 +528,43 @@ export default function AdminPage() {
     e.preventDefault();
     setUploading(true);
     try {
+      // 计算最终 orientation：auto 时根据视频文件自动判断
+      let finalOrientation: 'vertical' | 'horizontal' | undefined = undefined;
+      if (videoForm.orientation === 'auto') {
+        // 尝试从视频文件获取宽高比
+        if (videoForm.videoFile) {
+          finalOrientation = await detectVideoOrientation(videoForm.videoFile);
+        } else if (videoForm.url) {
+          finalOrientation = await detectVideoOrientation(videoForm.url);
+        }
+      } else {
+        finalOrientation = videoForm.orientation === 'vertical' ? 'vertical' : 'horizontal';
+      }
+
       if (editingVideo) {
-        const result = await worksService.updateVideo(editingVideo.id, { title: videoForm.title, description: videoForm.description, duration: videoForm.duration, url: videoForm.url, category: videoForm.category, videoFile: videoForm.videoFile || undefined, thumbnail: videoForm.thumbnail || undefined });
+        const result = await worksService.updateVideo(editingVideo.id, { 
+          title: videoForm.title, description: videoForm.description, duration: videoForm.duration, 
+          url: videoForm.url, category: videoForm.category, 
+          videoFile: videoForm.videoFile || undefined, thumbnail: videoForm.thumbnail || undefined,
+          orientation: finalOrientation,
+        });
         if (result) {
           setUserVideos(prev => prev.map(v => v.id === editingVideo.id ? result : v));
         }
         setEditingVideo(null);
       } else {
-        const result = await worksService.createVideo({ title: videoForm.title, description: videoForm.description, duration: videoForm.duration, thumbnail: videoForm.thumbnail, url: videoForm.url, videoFile: videoForm.videoFile || undefined, category: videoForm.category });
+        const result = await worksService.createVideo({ 
+          title: videoForm.title, description: videoForm.description, duration: videoForm.duration, 
+          thumbnail: videoForm.thumbnail, url: videoForm.url, 
+          videoFile: videoForm.videoFile || undefined, category: videoForm.category,
+          orientation: finalOrientation,
+        });
         if (result) {
           setUserVideos(prev => [result, ...prev]);
         }
       }
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
-      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
+      setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
       setVideoThumbnailPreview(null); setVideoPreview(null);
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error: any) {
@@ -552,6 +576,19 @@ export default function AdminPage() {
       else if (msg.includes('network') || msg.includes('fetch')) alert('上传失败：网络连接问题');
       else alert('上传失败：' + msg);
     } finally { setUploading(false); }
+  };
+
+  // 自动检测视频方向
+  const detectVideoOrientation = (src: string): Promise<'vertical' | 'horizontal' | undefined> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.onloadedmetadata = () => {
+        const orientation: 'vertical' | 'horizontal' = video.videoHeight > video.videoWidth ? 'vertical' : 'horizontal';
+        resolve(orientation);
+      };
+      video.onerror = () => resolve(undefined);
+      video.src = src;
+    });
   };
 
   const handleDeleteArtwork = async (id: string) => {
@@ -586,13 +623,22 @@ export default function AdminPage() {
     setEditingArtwork(null); setEditingVideo(null);
     setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '', status: 'published' });
     setImagePreview(null);
-    setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' });
+    setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
   };
 
   const handleEditVideo = (video: Video) => {
     setEditingVideo(video);
-    setVideoForm({ title: video.title, description: video.description || '', duration: video.duration || '00:00', thumbnail: video.thumbnail || '', url: video.url || '', videoFile: video.videoFile || '', category: video.category || '二次元' });
+    setVideoForm({ 
+      title: video.title, 
+      description: video.description || '', 
+      duration: video.duration || '00:00', 
+      thumbnail: video.thumbnail || '', 
+      url: video.url || '', 
+      videoFile: video.videoFile || '', 
+      category: video.category || '二次元',
+      orientation: video.orientation || 'auto',
+    });
     setVideoThumbnailPreview(video.thumbnail || null); setVideoPreview(video.videoFile || null);
     setWorksTab('video'); setEditorMode('edit');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -602,7 +648,7 @@ export default function AdminPage() {
     if (!confirm('确定要删除这个视频吗？')) return;
     try {
       await worksService.deleteVideo(id); setUserVideos(prev => prev.filter(v => v.id !== id));
-      if (editingVideo?.id === id) { setEditingVideo(null); setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元' }); setVideoThumbnailPreview(null); setVideoPreview(null); }
+      if (editingVideo?.id === id) { setEditingVideo(null); setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' }); setVideoThumbnailPreview(null); setVideoPreview(null); }
       alert('删除成功！'); if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error) { alert('删除失败，请重试'); }
   };
@@ -979,6 +1025,21 @@ export default function AdminPage() {
                         <div>
                           <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长</label>
                           <ThemedInput type="text" value={videoForm.duration} onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })} placeholder="如：03:24" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频方向</label>
+                        <div className="flex gap-3">
+                          {[
+                            { value: 'auto' as const, label: '自动识别' },
+                            { value: 'vertical' as const, label: '竖屏 9:16' },
+                            { value: 'horizontal' as const, label: '横屏 16:9' },
+                          ].map(opt => (
+                            <label key={opt.value} className="flex items-center gap-1.5 cursor-pointer text-sm" style={{ color: THEME.text.primary }}>
+                              <input type="radio" name="orientation" value={opt.value} checked={videoForm.orientation === opt.value} onChange={() => setVideoForm({ ...videoForm, orientation: opt.value })} style={{ accentColor: '#7865F8' }} />
+                              {opt.label}
+                            </label>
+                          ))}
                         </div>
                       </div>
                       <div>

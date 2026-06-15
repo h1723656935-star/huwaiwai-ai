@@ -38,6 +38,7 @@ export interface Video {
   url: string;
   videoFile?: string;
   category?: string;
+  orientation?: 'vertical' | 'horizontal';
   created_at?: string;
 }
 
@@ -555,6 +556,7 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
     if (video.duration) videoInsert.duration = video.duration;
     if (videoFileUrl) videoInsert.videoFile = videoFileUrl;
     if (video.category && video.category.trim()) videoInsert.category = video.category;
+    if (video.orientation) videoInsert.orientation = video.orientation;
 
     let data: any = null;
     let insertError: any = null;
@@ -660,6 +662,7 @@ export async function updateVideo(id: string, video: Partial<Video>): Promise<Vi
     if (video.duration !== undefined) updateData.duration = video.duration;
     if (video.url !== undefined) updateData.url = video.url;
     if (video.category !== undefined) updateData.category = video.category;
+    if (video.orientation !== undefined) updateData.orientation = video.orientation;
     if (thumbnailUrl) updateData.thumbnail = thumbnailUrl;
     if (videoFileUrl) {
       updateData.videoFile = videoFileUrl;
