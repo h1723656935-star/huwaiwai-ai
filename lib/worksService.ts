@@ -299,32 +299,36 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       throw updateError;
     }
 
-    // 尝试 select 获取更新后的真实数据，验证更新确实持久化
+    // 尝试 select 获取更新后的真实数据
     const { data: updatedRows, error: selectError } = await supabase
       .from('artworks')
       .select('*')
       .eq('id', id);
 
     if (!selectError && updatedRows && updatedRows.length > 0) {
-      const row = updatedRows[0];
       console.log('updateArtwork: select returned row, update confirmed in DB');
+      // 使用输入数据作为 localStorage 的真相源（避免 SELECT 返回缓存旧数据）
       const result = {
-        ...row,
-        tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
-        categories: typeof row.categories === 'string' ? JSON.parse(row.categories) : (row.categories || (row.category ? [row.category] : []))
-      };
-      // 同步保存到 localStorage，确保多端/缓存刷新后首页数据一致
+        id,
+        title: artwork.title || '',
+        category: artwork.category || '',
+        categories: artwork.categories || [],
+        tags: artwork.tags || [],
+        date: artwork.date || '',
+        image: imageUrl || artwork.image || '',
+        prompt: artwork.prompt || '',
+        negativePrompt: artwork.negativePrompt || '',
+        model: artwork.model || '',
+        dimensions: artwork.dimensions || '',
+        description: artwork.description || '',
+        created_at: new Date().toISOString(),
+      } as Artwork;
       try {
         const stored = localStorage.getItem('userArtworks');
         const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
         const idx = userArtworks.findIndex(a => a.id === id);
-        if (idx >= 0) {
-          userArtworks[idx] = result;
-        } else {
-          userArtworks.push(result);
-        }
+        if (idx >= 0) { userArtworks[idx] = result; } else { userArtworks.push(result); }
         localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
-        // 记录编辑时间戳（用 Date.now() 标记，绕过 created_at 比较问题）
         const editsRaw = localStorage.getItem('artwork_edit_times');
         const edits: Record<string, number> = editsRaw ? JSON.parse(editsRaw) : {};
         edits[id] = Date.now();
@@ -333,7 +337,7 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       return result;
     }
 
-    // select 被 RLS 阻止或返回空，但 update 没报错，用构造对象兜底
+    // select 被 RLS 阻止或返回空，用构造对象兜底
     console.warn('updateArtwork: select returned 0 rows (possible RLS block), using fallback');
     const fallbackResult = {
       id,
@@ -362,6 +366,10 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
         userArtworks.push(fallbackResult);
       }
       localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+      const editsRaw = localStorage.getItem('artwork_edit_times');
+      const edits: Record<string, number> = editsRaw ? JSON.parse(editsRaw) : {};
+      edits[id] = Date.now();
+      localStorage.setItem('artwork_edit_times', JSON.stringify(edits));
     } catch (e) {}
 
     return fallbackResult;
