@@ -45,6 +45,9 @@ export default function Hero() {
     );
   }
 
+  // 统一的缓动曲线
+  const easeOut = [0.22, 1, 0.36, 1] as const;
+
   return (
     <section
       ref={containerRef}
@@ -53,6 +56,7 @@ export default function Hero() {
     >
       <SparklesBackground />
 
+      {/* 背景光晕层 - 视差滚动 */}
       <motion.div
         className="absolute inset-0 overflow-hidden"
         style={{ y: y1 }}
@@ -102,55 +106,61 @@ export default function Hero() {
         />
       </motion.div>
 
+      {/* 主内容区域 */}
       <motion.div
         className="relative z-10 text-center px-4 max-w-4xl mx-auto"
         style={{ opacity, scale }}
       >
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1, ease: easeOut, delay: 0.1 }}
         >
+          {/* Welcome 标签 */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.3, duration: 0.7, ease: easeOut }}
             className="text-secondary font-medium mb-6 text-lg tracking-[0.3em]"
           >
             Welcome to
           </motion.p>
 
+          {/* 主标题 */}
           <motion.h1
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.7 }}
+            initial={{ opacity: 0, y: 30, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.45, duration: 0.9, ease: easeOut }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
           >
             <span className="gradient-text-moli">{config.heroTitle}</span>
           </motion.h1>
 
+          {/* 副标题 */}
           <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
+            initial={{ opacity: 0, y: 25, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.6, duration: 0.8, ease: easeOut }}
             className="text-xl sm:text-2xl text-foreground-muted mb-8"
           >
             {config.heroSubtitle}
           </motion.p>
 
+          {/* 描述文字 */}
           <motion.p
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65, duration: 0.7 }}
+            initial={{ opacity: 0, y: 25, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.75, duration: 0.8, ease: easeOut }}
             className="text-foreground-subtle mb-10 max-w-xl mx-auto text-lg leading-relaxed"
           >
             {config.heroDescription}
           </motion.p>
 
+          {/* CTA 按钮组 */}
           <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.7 }}
+            initial={{ opacity: 0, y: 30, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ delay: 0.9, duration: 0.8, ease: easeOut }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <motion.a
@@ -175,19 +185,26 @@ export default function Hero() {
         </motion.div>
       </motion.div>
 
+      {/* 滚动提示 */}
       <motion.div
         className="absolute bottom-12 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.4, duration: 0.8, ease: easeOut }}
         style={{ opacity }}
       >
-        <div className="w-6 h-10 border border-primary/30 rounded-full flex justify-center pt-2">
-          <motion.div
-            className="w-1.5 h-3 bg-primary/60 rounded-full"
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </div>
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <div className="w-6 h-10 border border-primary/30 rounded-full flex justify-center pt-2">
+            <motion.div
+              className="w-1.5 h-3 bg-primary/60 rounded-full"
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+        </motion.div>
       </motion.div>
     </section>
   );

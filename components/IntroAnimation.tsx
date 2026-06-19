@@ -1,272 +1,282 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
-// 「墨璃」Loading 界面 - 图片 + 电影级特效
 const INTRO_IMAGE = '/moli/moli-intro.png';
 
-interface Star {
-  id: number;
-  left: number;
-  top: number;
-  size: number;
-  color: string;
-  duration: number;
-  delay: number;
-  y: number;
-}
+// ─── 缓动曲线 ───────────────────────────────────────────
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const EASE_OUT_QUART: [number, number, number, number] = [0.25, 1, 0.5, 1];
+const EASE_IN_OUT: [number, number, number, number] = [0.76, 0, 0.24, 1];
 
-interface CharStar {
-  id: number;
-  left: number;
-  top: number;
-  delay: number;
-}
+// ─── SVG 魔法阵路径（预计算，避免 hydration mismatch） ──
+// 外圈六芒星线条坐标
+const HEX_LINES = [
+  { x1: 375, y1: 50, x2: 700, y2: 375 },
+  { x1: 700, y1: 375, x2: 375, y2: 700 },
+  { x1: 375, y1: 700, x2: 50, y2: 375 },
+  { x1: 50, y1: 375, x2: 375, y2: 50 },
+  { x1: 375, y1: 50, x2: 50, y2: 375 },
+  { x1: 50, y1: 375, x2: 700, y2: 375 },
+  { x1: 700, y1: 375, x2: 375, y2: 700 },
+  { x1: 375, y1: 700, x2: 375, y2: 50 },
+];
 
-export default function IntroAnimation({ onComplete }: { onComplete: () => void }) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [stars, setStars] = useState<Star[]>([]);
-  const [charStars, setCharStars] = useState<CharStar[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
+// 内圈装饰
+const INNER_MARKS = [
+  { x: 375, y: 130 },
+  { x: 570, y: 252 },
+  { x: 570, y: 498 },
+  { x: 375, y: 620 },
+  { x: 180, y: 498 },
+  { x: 180, y: 252 },
+];
+
+// ─── 百分比计数器组件 ────────────────────────────────────
+function PercentageCounter({ delay, duration }: { delay: number; duration: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [display, setDisplay] = useState('000');
 
   useEffect(() => {
-    setMounted(true);
+    const start = performance.now() + delay * 1000;
+    let raf: number;
 
-    // 检测手机端 - 减少星星数量避免性能问题
-    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
-    const isSmallScreen = window.innerWidth < 768;
-    const mobile = isCoarse || isSmallScreen;
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const progress = Math.min(elapsed / (duration * 1000), 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const value = Math.round(eased * 100);
+      setDisplay(String(value).padStart(3, '0'));
+      if (progress < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [delay, duration]);
+
+  return (
+    <span
+      ref={ref}
+      className="font-mono tabular-nums"
+      style={{
+        fontSize: 'clamp(48px, 8vw, 96px)',
+        fontWeight: 200,
+        letterSpacing: '0.08em',
+        color: 'rgba(167, 139, 217, 0.7)',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      {display}
+      <span style={{ fontSize: '0.4em', verticalAlign: 'super', marginLeft: '2px', opacity: 0.5 }}>%</span>
+    </span>
+  );
+}
+
+// ─── 主组件 ──────────────────────────────────────────────
+export default function IntroAnimation({ onComplete }: { onComplete: () => void }) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [phase, setPhase] = useState(0); // 0=idle, 1=draw, 2=reveal, 3=hold, 4=exit
+
+  useEffect(() => {
+    const mobile = window.innerWidth < 768;
     setIsMobile(mobile);
 
-    // 客户端生成随机星星 - 避免 SSR/客户端水合不一致导致的闪烁
-    const starCount = mobile ? 30 : 80;
-    const colors = ['#A78BD9', '#E8DEED', '#D4AF7A', '#C9B3E0'];
-    const newStars: Star[] = [...Array(starCount)].map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      size: Math.random() * 2.5 + 0.5,
-      color: colors[i % 4],
-      duration: 2 + Math.random() * 3,
-      delay: Math.random() * 2.5,
-      y: 10 + Math.random() * 20,
-    }));
-    setStars(newStars);
+    // 精心编排的时序
+    const t1 = setTimeout(() => setPhase(1), 200);   // 开始描绘魔法阵
+    const t2 = setTimeout(() => setPhase(2), 1800);  // 角色浮现 + 光脉冲
+    const t3 = setTimeout(() => setPhase(3), 3200);  // 文字显现 + 计数器
+    const t4 = setTimeout(() => setPhase(4), 4200);  // 退出过渡
+    const t5 = setTimeout(() => onComplete(), 5200);  // 完成
 
-    // 角色周围星光
-    const newCharStars: CharStar[] = [...Array(mobile ? 6 : 12)].map((_, i) => ({
-      id: i,
-      left: -5 + Math.random() * 110,
-      top: Math.random() * 95,
-      delay: 0.6 + i * 0.18,
-    }));
-    setCharStars(newCharStars);
-
-    const timer = setTimeout(() => {
-      onComplete();
-    }, 3800);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+    };
   }, [onComplete]);
 
   return (
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
-        style={{
-          background: `linear-gradient(160deg, #080610 0%, #0D0A18 25%, #1A1426 50%, #2A1F3D 75%, #0D0A18 100%)`,
-        }}
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 1 }}
+        style={{ background: '#05030A' }}
+        initial={{ clipPath: 'circle(150% at 50% 50%)' }}
         exit={{
-          opacity: 0,
-          filter: 'blur(8px)',
-          scale: 1.03,
-          transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+          clipPath: 'circle(0% at 50% 50%)',
+          transition: { duration: 1.0, ease: EASE_IN_OUT },
         }}
       >
-        {/* ====== 背景星空 ====== */}
-        {stars.map((star) => (
-          <motion.div
-            key={`star-${star.id}`}
-            className="absolute rounded-full"
+        {/* ─── Phase 1: 魔法阵描绘 ─── */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg
+            viewBox="0 0 750 750"
+            className="absolute"
             style={{
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              background: star.color,
+              width: isMobile ? '85vw' : '600px',
+              height: isMobile ? '85vw' : '600px',
+              opacity: phase >= 1 ? 1 : 0,
+              transition: 'opacity 0.3s ease',
             }}
-            animate={{
-              opacity: [0, 0.7, 0],
-              scale: [0, 1, 0],
-              y: [0, -star.y, 0],
-            }}
-            transition={{
-              duration: star.duration,
-              delay: star.delay,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        ))}
+          >
+            {/* 外圈 */}
+            <circle
+              cx="375"
+              cy="375"
+              r="340"
+              fill="none"
+              stroke="#A78BD9"
+              strokeWidth="0.8"
+              strokeDasharray="2136"
+              strokeDashoffset="2136"
+              style={{
+                transition: `stroke-dashoffset 1.4s ${EASE_OUT_EXPO.join(',')} 0.2s`,
+                ...(phase >= 1 ? { strokeDashoffset: '0' } : {}),
+              }}
+            />
 
-        {/* ====== 大型背景光晕 ====== */}
+            {/* 中圈 */}
+            <circle
+              cx="375"
+              cy="375"
+              r="270"
+              fill="none"
+              stroke="#C9B3E0"
+              strokeWidth="0.5"
+              strokeDasharray="1696"
+              strokeDashoffset="1696"
+              style={{
+                transition: `stroke-dashoffset 1.2s ${EASE_OUT_EXPO.join(',')} 0.5s`,
+                ...(phase >= 1 ? { strokeDashoffset: '0' } : {}),
+              }}
+            />
+
+            {/* 内圈 */}
+            <circle
+              cx="375"
+              cy="375"
+              r="200"
+              fill="none"
+              stroke="#5E3D8A"
+              strokeWidth="0.4"
+              strokeDasharray="1257"
+              strokeDashoffset="1257"
+              style={{
+                transition: `stroke-dashoffset 1.0s ${EASE_OUT_EXPO.join(',')} 0.7s`,
+                ...(phase >= 1 ? { strokeDashoffset: '0' } : {}),
+              }}
+            />
+
+            {/* 六芒星线条 */}
+            {HEX_LINES.map((line, i) => (
+              <line
+                key={`hex-${i}`}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke={i < 4 ? '#D4AF7A' : '#A78BD9'}
+                strokeWidth="0.6"
+                strokeDasharray="458"
+                strokeDashoffset="458"
+                opacity="0.5"
+                style={{
+                  transition: `stroke-dashoffset 0.8s ${EASE_OUT_EXPO.join(',')} ${0.9 + i * 0.08}s`,
+                  ...(phase >= 1 ? { strokeDashoffset: '0' } : {}),
+                }}
+              />
+            ))}
+
+            {/* 六个节点标记 */}
+            {INNER_MARKS.map((mark, i) => (
+              <g key={`mark-${i}`} style={{ opacity: phase >= 1 ? 1 : 0, transition: `opacity 0.4s ease ${1.2 + i * 0.1}s` }}>
+                <circle cx={mark.x} cy={mark.y} r="4" fill="none" stroke="#D4AF7A" strokeWidth="0.6" opacity="0.6" />
+                <circle cx={mark.x} cy={mark.y} r="1.5" fill="#D4AF7A" opacity="0.8" />
+              </g>
+            ))}
+          </svg>
+        </div>
+
+        {/* ─── Phase 2: 中心光脉冲 + 角色浮现 ─── */}
+        {/* 光脉冲 - 从中心扩散 */}
         <motion.div
-          className="absolute rounded-full blur-3xl"
+          className="absolute rounded-full"
           style={{
-            width: '800px',
-            height: '600px',
+            width: '100px',
+            height: '100px',
             top: '50%',
             left: '50%',
-            background:
-              'radial-gradient(ellipse, rgba(94,61,138,0.35) 0%, rgba(61,42,92,0.15) 30%, rgba(26,20,38,0.08) 60%, transparent 75%)',
-          }}
-          initial={{ x: '-50%', y: '-50%', scale: 0.3, opacity: 0 }}
-          animate={{
-            x: '-50%',
-            y: '-50%',
-            scale: [0.3, 1.25, 1],
-            opacity: [0, 0.8, 0.5],
-            rotate: [0, 5, 0],
-          }}
-          transition={{ duration: 3, ease: 'easeOut' }}
-        />
-
-        {/* 第二层光晕 - 紫色 */}
-        <motion.div
-          className="absolute rounded-full blur-2xl"
-          style={{
-            width: '500px',
-            height: '400px',
-            top: '45%',
-            left: '52%',
-            background:
-              'radial-gradient(ellipse, rgba(167,139,217,0.18) 0%, rgba(122,91,171,0.08) 40%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(167,139,217,0.8) 0%, rgba(120,101,248,0.3) 40%, transparent 70%)',
+            filter: 'blur(20px)',
           }}
           initial={{ x: '-50%', y: '-50%', scale: 0, opacity: 0 }}
-          animate={{
-            x: '-50%',
-            y: '-50%',
-            scale: [0, 1.4, 1.1],
-            opacity: [0, 0.7, 0.3],
-          }}
-          transition={{ duration: 2.8, delay: 0.3, ease: 'easeOut' }}
+          animate={
+            phase >= 2
+              ? { x: '-50%', y: '-50%', scale: [0, 8, 12], opacity: [0, 0.6, 0] }
+              : { x: '-50%', y: '-50%', scale: 0, opacity: 0 }
+          }
+          transition={{ duration: 1.5, ease: EASE_OUT_EXPO }}
         />
 
-        {/* ====== 旋转魔法阵 ====== */}
+        {/* 第二波光脉冲 */}
         <motion.div
-          className="absolute"
+          className="absolute rounded-full"
           style={{
+            width: '60px',
+            height: '60px',
             top: '50%',
             left: '50%',
-            width: '700px',
-            height: '700px',
+            background: 'radial-gradient(circle, rgba(212,175,122,0.6) 0%, transparent 60%)',
+            filter: 'blur(15px)',
           }}
-          animate={{ rotate: 360, x: '-50%', y: '-50%' }}
-          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-        >
-          <svg viewBox="0 0 700 700" className="w-full h-full" style={{ opacity: 0.22 }}>
-            {/* 外圈 */}
-            <circle cx="350" cy="350" r="330" fill="none" stroke="#A78BD9" strokeWidth="0.6" strokeDasharray="8 5" />
-            <circle cx="350" cy="350" r="280" fill="none" stroke="#C9B3E0" strokeWidth="0.4" strokeDasharray="3 6" />
-            <circle cx="350" cy="350" r="230" fill="none" stroke="#5E3D8A" strokeWidth="0.5" strokeDasharray="12 4" />
-            <circle cx="350" cy="350" r="180" fill="none" stroke="#D4AF7A" strokeWidth="0.3" />
+          initial={{ x: '-50%', y: '-50%', scale: 0, opacity: 0 }}
+          animate={
+            phase >= 2
+              ? { x: '-50%', y: '-50%', scale: [0, 6, 10], opacity: [0, 0.5, 0] }
+              : { x: '-50%', y: '-50%', scale: 0, opacity: 0 }
+          }
+          transition={{ duration: 1.5, ease: EASE_OUT_EXPO, delay: 0.15 }}
+        />
 
-            {/* 八角星标记 */}
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-              <g key={angle} transform={`rotate(${angle} 350 350)`}>
-                <line x1="350" y1="20" x2="350" y2="55" stroke="#A78BD9" strokeWidth="1.2" />
-                <polygon points="350,20 347,32 353,32" fill="#D4AF7A" />
-                <circle cx="350" cy="16" r="3" fill="#A78BD9" opacity="0.8" />
-              </g>
-            ))}
-
-            {/* 四方花饰 */}
-            {[30, 120, 210, 300].map((angle) => (
-              <g key={angle} transform={`translate(${350 + 240 * Math.cos((angle * Math.PI) / 180)}, ${350 + 240 * Math.sin((angle * Math.PI) / 180)})`}>
-                {[0, 72, 144, 216, 288].map((p, j) => (
-                  <ellipse
-                    key={j}
-                    cx={Math.cos((p * Math.PI) / 180) * 8}
-                    cy={Math.sin((p * Math.PI) / 180) * 8}
-                    rx="5"
-                    ry="9"
-                    fill="#C9B3E0"
-                    transform={`rotate(${p})`}
-                    opacity="0.5"
-                  />
-                ))}
-                <circle cx="0" cy="0" r="4" fill="#D4AF7A" opacity="0.7" />
-              </g>
-            ))}
-
-            {/* 内部几何装饰 */}
-            <polygon points="350,150 420,290 570,320 450,430 480,580 350,500 220,580 250,430 130,320 280,290" fill="none" stroke="#5E3D8A" strokeWidth="0.4" opacity="0.4" />
-          </svg>
-        </motion.div>
-
-        {/* ====== 扩散圆环 ====== */}
-        {[0, 1, 2, 3].map((i) => (
-          <motion.div
-            key={`ring-${i}`}
-            className="absolute rounded-full"
-            style={{
-              top: '50%',
-              left: '50%',
-              width: '40px',
-              height: '40px',
-              border: `1.5px solid ${i % 2 === 0 ? '#D4AF7A' : '#A78BD9'}`,
-            }}
-            initial={{ x: '-50%', y: '-50%', scale: 0, opacity: 0.85 }}
-            animate={{
-              x: '-50%',
-              y: '-50%',
-              scale: [0, 28 + i * 6],
-              opacity: [0.85, 0.25, 0],
-            }}
-            transition={{
-              duration: 2.8,
-              delay: i * 0.28,
-              ease: 'easeOut',
-            }}
-          />
-        ))}
-
-        {/* ====== 角色立绘 - 图片主体 ====== */}
+        {/* 角色立绘 */}
         <motion.div
           className="relative z-20 flex items-center justify-center"
-          style={{ width: '340px', height: '520px' }}
-          initial={{ opacity: 0, y: 70, scale: 0.88 }}
-          animate={{
-            opacity: [0, 1, 1],
-            y: [70, -8, 0],
-            scale: [0.88, 1.04, 1],
+          style={{
+            width: isMobile ? '260px' : '340px',
+            height: isMobile ? '400px' : '520px',
           }}
-          transition={{
-            duration: 1.6,
-            delay: 0.35,
-            ease: [0.22, 1, 0.36, 1],
-          }}
+          initial={{ opacity: 0, scale: 0.85, filter: 'blur(12px)' }}
+          animate={
+            phase >= 2
+              ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
+              : { opacity: 0, scale: 0.85, filter: 'blur(12px)' }
+          }
+          transition={{ duration: 1.4, ease: EASE_OUT_EXPO, delay: 0.3 }}
         >
-          {/* 角色光环 */}
+          {/* 角色底部光晕 */}
           <motion.div
-            className="absolute rounded-full blur-2xl"
+            className="absolute"
             style={{
-              width: '90%',
-              height: '55%',
-              bottom: '5%',
-              left: '5%',
-              background:
-                'radial-gradient(ellipse, rgba(94,61,138,0.4) 0%, rgba(167,139,217,0.15) 35%, transparent 65%)',
+              width: '120%',
+              height: '50%',
+              bottom: '-5%',
+              left: '-10%',
+              background: 'radial-gradient(ellipse at center bottom, rgba(94,61,138,0.4) 0%, transparent 60%)',
+              filter: 'blur(30px)',
             }}
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.3, 1.05], opacity: [0, 0.7, 0.35] }}
-            transition={{ duration: 2.2, delay: 0.5, ease: 'easeOut' }}
+            initial={{ opacity: 0 }}
+            animate={phase >= 2 ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 1.2, delay: 0.6 }}
           />
 
-          {/* 角色图片 */}
           <img
             src={INTRO_IMAGE}
             alt="墨璃 - MOLI"
@@ -275,142 +285,143 @@ export default function IntroAnimation({ onComplete }: { onComplete: () => void 
               height: '100%',
               objectFit: 'contain',
               objectPosition: 'bottom center',
-              filter: 'drop-shadow(0 20px 50px rgba(13,10,24,0.7)) drop-shadow(0 0 80px rgba(94,61,138,0.25))',
-            }}
-            onLoad={() => setImageLoaded(true)}
-            onError={(e) => {
-              console.error('[墨璃] Loading立绘加载失败，请确认 /public/moli/moli-intro.png 存在');
+              filter: 'drop-shadow(0 20px 50px rgba(13,10,24,0.8)) drop-shadow(0 0 80px rgba(94,61,138,0.2))',
             }}
             draggable={false}
           />
-
-          {/* 角色周围星光 */}
-          {charStars.map((cs) => (
-            <motion.div
-              key={`char-star-${cs.id}`}
-              className="absolute"
-              style={{
-                left: `${cs.left}%`,
-                top: `${cs.top}%`,
-              }}
-              animate={{
-                scale: [0, 1.4, 0],
-                opacity: [0, 1, 0],
-                rotate: [0, 135],
-              }}
-              transition={{
-                duration: 2.2,
-                delay: cs.delay,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            >
-              <svg viewBox="0 0 16 16" width={14} height={14}>
-                <path d="M 8 0 L 9.5 6 L 16 8 L 9.5 10 L 8 16 L 6.5 10 L 0 8 L 6.5 6 Z" fill="#D4AF7A" />
-                <path d="M 8 2 L 9 7 L 8 9 L 7 7 Z" fill="#FFFFFF" opacity="0.7" />
-              </svg>
-            </motion.div>
-          ))}
         </motion.div>
 
-        {/* ====== 标题文字区 ====== */}
-        <motion.div
-          className="absolute z-30 text-center"
-          style={{ bottom: '22%' }}
-          initial={{ opacity: 0, y: 35 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1, delay: 1.6, ease: 'easeOut' }}
+        {/* ─── Phase 3: 文字 + 计数器 ─── */}
+        <div
+          className="absolute z-30 flex flex-col items-center"
+          style={{
+            bottom: isMobile ? '15%' : '18%',
+            opacity: phase >= 3 ? 1 : 0,
+            transition: 'opacity 0.6s ease',
+          }}
         >
-          <h1
-            className="text-5xl md:text-6xl font-bold tracking-wider mb-1.5"
-            style={{
-              background: 'linear-gradient(135deg, #E8DEED 0%, #C9B3E0 35%, #A78BD9 65%, #D4AF7A 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 0 40px rgba(167,139,217,0.3)',
-            }}
-          >
-            墨璃
-          </h1>
+          {/* 百分比计数器 */}
+          <div className="mb-6">
+            <PercentageCounter delay={3.2} duration={1.0} />
+          </div>
+
+          {/* 主标题 - clip-path 逐字裁切显现 */}
+          <div className="flex gap-1 mb-3">
+            {['墨', '璃'].map((char, i) => (
+              <motion.span
+                key={i}
+                className="inline-block"
+                style={{
+                  fontSize: isMobile ? '40px' : '56px',
+                  fontWeight: 700,
+                  letterSpacing: '0.15em',
+                  background: 'linear-gradient(135deg, #E8DEED 0%, #C9B3E0 40%, #A78BD9 70%, #D4AF7A 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  clipPath: phase >= 3 ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+                  transition: `clip-path 0.8s ${EASE_OUT_EXPO.join(',')} ${i * 0.15}s`,
+                }}
+              >
+                {char}
+              </motion.span>
+            ))}
+          </div>
+
+          {/* 英文副标题 */}
           <motion.p
-            initial={{ opacity: 0, letterSpacing: '0.2em' }}
-            animate={{ opacity: 1, letterSpacing: '0.6em' }}
-            transition={{ delay: 1.85, duration: 0.8 }}
-            className="text-sm tracking-[0.6em] font-extralight"
+            initial={{ opacity: 0, y: 8 }}
+            animate={phase >= 3 ? { opacity: 0.6, y: 0 } : { opacity: 0, y: 8 }}
+            transition={{ duration: 0.7, ease: EASE_OUT_QUART, delay: 0.5 }}
+            className="text-xs tracking-[0.5em] font-extralight"
             style={{ color: '#C9B3E0' }}
           >
             MO LI
           </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            transition={{ delay: 2.1 }}
-            className="text-xs mt-2 font-light tracking-widest"
-            style={{ color: '#A78BD9' }}
-          >
-            数字花园的守护者 · Digital Guardian
-          </motion.p>
-        </motion.div>
 
-        {/* ====== 分隔线 ====== */}
-        <motion.div
-          className="absolute z-30 h-[1px]"
-          style={{
-            bottom: '13%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '200px',
-            background: 'linear-gradient(90deg, transparent, #5E3D8A, #A78BD9, #D4AF7A, #A78BD9, #5E3D8A, transparent)',
-            boxShadow: '0 0 8px rgba(167,139,217,0.4)',
-          }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 1.4, delay: 1.8, ease: 'easeInOut' }}
-        />
-
-        {/* ====== 进度条 ====== */}
-        <motion.div
-          className="absolute z-30 rounded-full overflow-hidden"
-          style={{
-            bottom: '7%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '260px',
-            height: 2,
-            background: 'rgba(61,42,92,0.4)',
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.6 }}
-        >
+          {/* 极简分隔线 */}
           <motion.div
-            className="h-full rounded-full"
+            className="h-[1px] mt-4"
             style={{
-              background: 'linear-gradient(90deg, #5E3D8A, #A78BD9, #D4AF7A, #C9B3E0)',
-              boxShadow: '0 0 12px rgba(167,139,217,0.6)',
+              width: '120px',
+              background: 'linear-gradient(90deg, transparent, rgba(167,139,217,0.4), transparent)',
             }}
-            initial={{ width: 0 }}
-            animate={{ width: '100%' }}
-            transition={{ duration: 2.2, delay: 1.6, ease: 'easeInOut' }}
+            initial={{ scaleX: 0 }}
+            animate={phase >= 3 ? { scaleX: 1 } : { scaleX: 0 }}
+            transition={{ duration: 0.8, ease: EASE_IN_OUT, delay: 0.6 }}
           />
-        </motion.div>
+        </div>
 
-        {/* ====== 底部状态文字 ====== */}
-        <motion.p
-          className="absolute z-30 text-center text-xs font-light tracking-[0.35em]"
-          style={{
-            bottom: '3.5%',
-            left: 0,
-            right: 0,
-            color: '#7A5BAB',
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.55 }}
-          transition={{ delay: 2.2 }}
-        >
-          INITIALIZING DIGITAL GARDEN SYSTEM...
-        </motion.p>
+        {/* ─── 持续的微弱粒子（极简） ─── */}
+        {phase >= 1 && (
+          <>
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: '3px',
+                height: '3px',
+                top: '30%',
+                left: '25%',
+                background: '#A78BD9',
+                boxShadow: '0 0 6px #A78BD980',
+              }}
+              animate={{ opacity: [0, 0.7, 0], y: [0, -30, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            />
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: '2px',
+                height: '2px',
+                top: '60%',
+                left: '70%',
+                background: '#D4AF7A',
+                boxShadow: '0 0 6px #D4AF7A80',
+              }}
+              animate={{ opacity: [0, 0.5, 0], y: [0, -20, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+            />
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: '2px',
+                height: '2px',
+                top: '45%',
+                left: '80%',
+                background: '#C9B3E0',
+                boxShadow: '0 0 4px #C9B3E060',
+              }}
+              animate={{ opacity: [0, 0.6, 0], y: [0, -25, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 2.0 }}
+            />
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: '2px',
+                height: '2px',
+                top: '35%',
+                left: '15%',
+                background: '#9D7CFF',
+                boxShadow: '0 0 4px #9D7CFF60',
+              }}
+              animate={{ opacity: [0, 0.5, 0], y: [0, -20, 0] }}
+              transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+            />
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: '3px',
+                height: '3px',
+                top: '70%',
+                left: '40%',
+                background: '#D4AF7A',
+                boxShadow: '0 0 6px #D4AF7A60',
+              }}
+              animate={{ opacity: [0, 0.4, 0], y: [0, -15, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+            />
+          </>
+        )}
       </motion.div>
     </AnimatePresence>
   );
