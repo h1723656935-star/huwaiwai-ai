@@ -1,174 +1,154 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
-
-const navItems = [
-  { label: '首页', href: '#home' },
-  { label: 'AI绘画', href: '#artworks' },
-  { label: 'AI视频', href: '#videos' },
-];
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
-      
-      const sections = ['home', 'artworks', 'videos'];
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const element = document.getElementById(sections[i]);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) {
-            setActiveIndex(i);
-            break;
-          }
-        }
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const activeElement = itemRefs.current[activeIndex];
-    if (activeElement) {
-      const rect = activeElement.getBoundingClientRect();
-      const parentRect = activeElement.parentElement?.getBoundingClientRect();
-      if (parentRect) {
-        setUnderlineStyle({
-          left: rect.left - parentRect.left,
-          width: rect.width,
-        });
-      }
-    }
-  }, [activeIndex]);
-
-  const handleHover = (index: number) => {
-    const element = itemRefs.current[index];
-    if (element) {
-      const rect = element.getBoundingClientRect();
-      const parentRect = element.parentElement?.getBoundingClientRect();
-      if (parentRect) {
-        setUnderlineStyle({
-          left: rect.left - parentRect.left,
-          width: rect.width,
-        });
-      }
-    }
-  };
-
-  const handleLeave = () => {
-    const activeElement = itemRefs.current[activeIndex];
-    if (activeElement) {
-      const rect = activeElement.getBoundingClientRect();
-      const parentRect = activeElement.parentElement?.getBoundingClientRect();
-      if (parentRect) {
-        setUnderlineStyle({
-          left: rect.left - parentRect.left,
-          width: rect.width,
-        });
-      }
-    }
-  };
+  const navItems = [
+    { label: '首页', href: '#home' },
+    { label: 'AI绘画', href: '#artworks' },
+    { label: 'AI视频', href: '#videos' },
+    { label: '关于', href: '#about' },
+  ];
 
   return (
     <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ y: -30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled ? 'glass' : 'bg-transparent'
+        scrolled ? 'glass' : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <motion.a
-            href="#home"
-            className="text-2xl font-bold gradient-text-moli tracking-tight"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <a
+          href="#home"
+          className="flex items-center gap-3 group"
+        >
+          <span
+            className="text-xl tracking-wider transition-all duration-300 group-hover:opacity-80"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 400,
+              letterSpacing: '0.12em',
+              background: 'linear-gradient(135deg, var(--light) 0%, var(--secondary) 50%, var(--primary) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
           >
-            墨璃 · MOLI
-          </motion.a>
+            墨璃
+          </span>
+          <span
+            className="text-xs tracking-[0.2em] opacity-40 group-hover:opacity-60 transition-opacity"
+            style={{
+              fontFamily: 'var(--font-en)',
+              fontWeight: 300,
+              fontStyle: 'italic',
+              color: 'var(--light-subtle)',
+            }}
+          >
+            MOLI
+          </span>
+        </a>
 
-          <div className="hidden md:flex items-center space-x-8 relative">
-            {navItems.map((item, index) => (
-              <motion.a
-                key={item.label}
-                href={item.href}
-                ref={(el) => { itemRefs.current[index] = el; }}
-                className={`text-sm font-medium transition-colors duration-300 ${
-                  activeIndex === index ? 'text-primary' : 'text-foreground-muted hover:text-primary'
-                }`}
-                onMouseEnter={() => handleHover(index)}
-                onMouseLeave={handleLeave}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {item.label}
-              </motion.a>
-            ))}
-            
-            <motion.div
-              className="absolute bottom-0 h-0.5 rounded-full"
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-10">
+          {navItems.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="relative group py-1"
               style={{
-                background: 'linear-gradient(90deg, var(--primary), var(--secondary))',
+                fontFamily: 'var(--font-ui)',
+                fontSize: '0.85rem',
+                fontWeight: 400,
+                letterSpacing: '0.08em',
+                color: 'var(--light-muted)',
               }}
-              animate={{
-                left: underlineStyle.left,
-                width: underlineStyle.width,
+            >
+              <span className="transition-colors duration-300 group-hover:text-white">
+                {item.label}
+              </span>
+              <span
+                className="absolute -bottom-0.5 left-0 h-[1px] w-0 group-hover:w-full transition-all duration-400"
+                style={{
+                  background: 'linear-gradient(90deg, var(--secondary), var(--primary))',
+                }}
+              />
+            </a>
+          ))}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden p-2"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <div className="w-5 flex flex-col gap-1.5">
+            <span
+              className="block h-[1px] w-full transition-all duration-300"
+              style={{
+                background: 'var(--light-muted)',
+                transform: menuOpen ? 'rotate(45deg) translateY(4px)' : 'none',
               }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            />
+            <span
+              className="block h-[1px] w-full transition-all duration-300"
+              style={{
+                background: 'var(--light-muted)',
+                opacity: menuOpen ? 0 : 1,
+              }}
+            />
+            <span
+              className="block h-[1px] w-full transition-all duration-300"
+              style={{
+                background: 'var(--light-muted)',
+                transform: menuOpen ? 'rotate(-45deg) translateY(-4px)' : 'none',
+              }}
             />
           </div>
-
-          <motion.button
-            className="md:hidden p-2 text-foreground-muted hover:text-primary transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </motion.button>
-        </div>
+        </button>
       </div>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
-        {isMobileMenuOpen && (
+        {menuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden glass border-t border-border"
+            transition={{ duration: 0.3 }}
+            className="md:hidden glass border-t"
+            style={{ borderColor: 'var(--border)' }}
           >
-            <div className="px-4 py-4 space-y-3">
-              {navItems.map((item, index) => (
-                <motion.a
-                  key={item.label}
+            <div className="px-6 py-4 flex flex-col gap-4">
+              {navItems.map((item) => (
+                <a
+                  key={item.href}
                   href={item.href}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    activeIndex === index 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'text-foreground-muted hover:text-primary hover:bg-primary/5'
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  whileHover={{ x: 8 }}
+                  onClick={() => setMenuOpen(false)}
+                  className="py-2 transition-colors duration-300 hover:text-white"
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.06em',
+                    color: 'var(--light-muted)',
+                  }}
                 >
                   {item.label}
-                </motion.a>
+                </a>
               ))}
             </div>
           </motion.div>

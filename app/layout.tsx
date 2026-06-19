@@ -1,37 +1,34 @@
-import type { Metadata, Viewport } from 'next';
-import './globals.css';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: '胡歪歪 AI Studio - AI Creator & Digital Artist',
-  description: '探索AI绘画与视频创作，探索二次元美学与梦幻表达',
-  keywords: ['AI绘画', 'AI视频', '二次元', '数字艺术', 'Midjourney', 'Stable Diffusion'],
-  authors: [{ name: '胡歪歪' }],
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  themeColor: '#ffffff',
+  title: "胡歪歪 AI Studio - AI Creator & Digital Artist",
+  description: "探索AI绘画与视频创作，分享数字艺术灵感与创作心得",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="zh-CN">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://chinese-font.netlify.app" crossOrigin="anonymous" />
+        <link
+          rel="preload"
+          href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+          as="style"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="font-sans">
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
+      <body className="antialiased">
+        {children}
       </body>
     </html>
   );
