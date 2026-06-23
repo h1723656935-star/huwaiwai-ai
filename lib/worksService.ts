@@ -81,6 +81,26 @@ export interface SiteConfig {
   aboutTags: string;
 }
 
+// 安全访问 localStorage（仅在浏览器环境）
+export function getLocalStorageItem(key: string): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(key);
+  }
+  return null;
+}
+
+export function setLocalStorageItem(key: string, value: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(key, value);
+  }
+}
+
+export function removeLocalStorageItem(key: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(key);
+  }
+}
+
 export async function getArtworks(): Promise<Artwork[]> {
   try {
     const { data, error } = await supabase
@@ -99,12 +119,12 @@ export async function getArtworks(): Promise<Artwork[]> {
     }));
     
     // 合并 localStorage：被编辑过的作品，localStorage 始终覆盖 DB
-    const stored = localStorage.getItem('userArtworks');
+    const stored = getLocalStorageItem('userArtworks');
     const localArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
-    const editTimesRaw = localStorage.getItem('artwork_edit_times');
+    const editTimesRaw = getLocalStorageItem('artwork_edit_times');
     const editTimes: Record<string, number> = editTimesRaw ? JSON.parse(editTimesRaw) : {};
     // 获取已删除的作品 ID 列表（DB 删除失败时记录在这里）
-    const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+    const deletedIdsRaw = getLocalStorageItem('artwork_deleted_ids');
     const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
     const deletedSet = new Set(deletedIds);
     const artworkMap = new Map<string, Artwork>();
@@ -129,7 +149,7 @@ export async function getArtworks(): Promise<Artwork[]> {
     );
   } catch (error) {
     console.error('Error fetching artworks:', error);
-    const stored = localStorage.getItem('userArtworks');
+    const stored = getLocalStorageItem('userArtworks');
     return stored ? JSON.parse(stored) : [];
   }
 }
@@ -235,10 +255,10 @@ export async function createArtwork(artwork: Omit<Artwork, 'id' | 'created_at'>)
       created_at: new Date().toISOString(),
     };
     try {
-      const stored = localStorage.getItem('userArtworks');
+      const stored = getLocalStorageItem('userArtworks');
       const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
       userArtworks.push(fallbackArtwork);
-      localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
+      setLocalStorageItem('userArtworks', JSON.stringify(userArtworks));
     } catch (storageError) {
       console.error('localStorage save failed:', storageError);
     }
@@ -332,15 +352,15 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
         created_at: new Date().toISOString(),
       } as Artwork;
       try {
-        const stored = localStorage.getItem('userArtworks');
+        const stored = getLocalStorageItem('userArtworks');
         const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
         const idx = userArtworks.findIndex(a => a.id === id);
         if (idx >= 0) { userArtworks[idx] = result; } else { userArtworks.push(result); }
-        localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
-        const editsRaw = localStorage.getItem('artwork_edit_times');
+        setLocalStorageItem('userArtworks', JSON.stringify(userArtworks));
+        const editsRaw = getLocalStorageItem('artwork_edit_times');
         const edits: Record<string, number> = editsRaw ? JSON.parse(editsRaw) : {};
         edits[id] = Date.now();
-        localStorage.setItem('artwork_edit_times', JSON.stringify(edits));
+        setLocalStorageItem('artwork_edit_times', JSON.stringify(edits));
       } catch (e) {}
       return result;
     }
@@ -365,7 +385,7 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
 
     // 保存到 localStorage 作为兜底，确保首页能读到最新数据
     try {
-      const stored = localStorage.getItem('userArtworks');
+      const stored = getLocalStorageItem('userArtworks');
       const userArtworks: Artwork[] = stored ? JSON.parse(stored) : [];
       const idx = userArtworks.findIndex(a => a.id === id);
       if (idx >= 0) {
@@ -373,11 +393,11 @@ export async function updateArtwork(id: string, artwork: Partial<Artwork>): Prom
       } else {
         userArtworks.push(fallbackResult);
       }
-      localStorage.setItem('userArtworks', JSON.stringify(userArtworks));
-      const editsRaw = localStorage.getItem('artwork_edit_times');
+      setLocalStorageItem('userArtworks', JSON.stringify(userArtworks));
+      const editsRaw = getLocalStorageItem('artwork_edit_times');
       const edits: Record<string, number> = editsRaw ? JSON.parse(editsRaw) : {};
       edits[id] = Date.now();
-      localStorage.setItem('artwork_edit_times', JSON.stringify(edits));
+      setLocalStorageItem('artwork_edit_times', JSON.stringify(edits));
     } catch (e) {}
 
     return fallbackResult;
@@ -412,50 +432,50 @@ export async function deleteArtwork(id: string): Promise<boolean> {
       console.error('Error deleting artwork from DB:', error);
       // DB 删除失败，记录到 localStorage 黑名单
       try {
-        const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+        const deletedIdsRaw = getLocalStorageItem('artwork_deleted_ids');
         const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
         if (!deletedIds.includes(id)) {
           deletedIds.push(id);
-          localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+          setLocalStorageItem('artwork_deleted_ids', JSON.stringify(deletedIds));
         }
       } catch (e) {}
       // 同时从 localStorage 中移除
-      const stored = localStorage.getItem('userArtworks');
+      const stored = getLocalStorageItem('userArtworks');
       if (stored) {
         const userArtworks: Artwork[] = JSON.parse(stored);
-        localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
+        setLocalStorageItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
       }
       return true;
     }
     
     // DB 删除成功，也记录到黑名单（防止缓存）
     try {
-      const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+      const deletedIdsRaw = getLocalStorageItem('artwork_deleted_ids');
       const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
-        localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+        setLocalStorageItem('artwork_deleted_ids', JSON.stringify(deletedIds));
       }
     } catch (e) {}
-    const stored = localStorage.getItem('userArtworks');
+    const stored = getLocalStorageItem('userArtworks');
     if (stored) {
       const userArtworks: Artwork[] = JSON.parse(stored);
-      localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
+      setLocalStorageItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
     }
     return true;
   } catch (error) {
     console.error('Error deleting artwork:', error);
     try {
-      const deletedIdsRaw = localStorage.getItem('artwork_deleted_ids');
+      const deletedIdsRaw = getLocalStorageItem('artwork_deleted_ids');
       const deletedIds: string[] = deletedIdsRaw ? JSON.parse(deletedIdsRaw) : [];
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
-        localStorage.setItem('artwork_deleted_ids', JSON.stringify(deletedIds));
+        setLocalStorageItem('artwork_deleted_ids', JSON.stringify(deletedIds));
       }
-      const stored = localStorage.getItem('userArtworks');
+      const stored = getLocalStorageItem('userArtworks');
       if (stored) {
         const userArtworks: Artwork[] = JSON.parse(stored);
-        localStorage.setItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
+        setLocalStorageItem('userArtworks', JSON.stringify(userArtworks.filter(a => a.id !== id)));
       }
     } catch (e) {}
     return true;
@@ -471,14 +491,14 @@ export async function getVideos(): Promise<Video[]> {
     
     if (error) {
       console.error('Error fetching videos:', error);
-      const stored = localStorage.getItem('userVideos');
+      const stored = getLocalStorageItem('userVideos');
       return stored ? JSON.parse(stored) : [];
     }
     
     return data || [];
   } catch (error) {
     console.error('Error fetching videos:', error);
-    const stored = localStorage.getItem('userVideos');
+    const stored = getLocalStorageItem('userVideos');
     return stored ? JSON.parse(stored) : [];
   }
 }
@@ -614,10 +634,10 @@ export async function createVideo(video: Omit<Video, 'id' | 'created_at'>): Prom
       created_at: new Date().toISOString(),
     };
     try {
-      const stored = localStorage.getItem('userVideos');
+      const stored = getLocalStorageItem('userVideos');
       const userVideos: Video[] = stored ? JSON.parse(stored) : [];
       userVideos.push(fallbackVideo);
-      localStorage.setItem('userVideos', JSON.stringify(userVideos));
+      setLocalStorageItem('userVideos', JSON.stringify(userVideos));
     } catch (storageError) {
       console.error('localStorage save failed:', storageError);
     }
@@ -747,11 +767,11 @@ export async function deleteVideo(id: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Error deleting video:', error);
-    const stored = localStorage.getItem('userVideos');
+    const stored = getLocalStorageItem('userVideos');
     if (stored) {
       const userVideos: Video[] = JSON.parse(stored);
       const filtered = userVideos.filter(video => video.id !== id);
-      localStorage.setItem('userVideos', JSON.stringify(filtered));
+      setLocalStorageItem('userVideos', JSON.stringify(filtered));
       return true;
     }
     return false;

@@ -34,8 +34,8 @@ function DesktopLayout() {
     setTimeout(() => {
       setShowIntro(false);
       // 过渡遮罩消退
-      setTimeout(() => setTransitioning(false), 100);
-    }, 600);
+      setTimeout(() => setTransitioning(false), 200);
+    }, 500);
   }, []);
 
   return (
@@ -53,36 +53,36 @@ function DesktopLayout() {
         )}
       </AnimatePresence>
 
-      {/* ─── 过渡遮罩：光闪效果 ─── */}
+      {/* ─── 过渡遮罩：电影级溶解过渡 ─── */}
       <AnimatePresence>
         {transitioning && (
           <motion.div
-            key="transition-flash"
+            key="transition-dissolve"
             className="fixed inset-0 z-[200] pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: EASE }}
+            transition={{ duration: 0.6, ease: EASE }}
             style={{
               background:
-                'radial-gradient(ellipse at center, rgba(167,139,217,0.15) 0%, rgba(5,3,10,0.95) 50%, #05030A 100%)',
+                'radial-gradient(ellipse at 50% 40%, rgba(5,3,10,0.7) 0%, rgba(5,3,10,0.92) 40%, #05030A 100%)',
             }}
           >
-            {/* 中心光点 */}
+            {/* 中心柔光扩散 */}
             <motion.div
               className="absolute rounded-full"
               style={{
-                width: '200px',
-                height: '200px',
+                width: '120vw',
+                height: '120vh',
                 top: '50%',
                 left: '50%',
                 background:
-                  'radial-gradient(circle, rgba(167,139,217,0.4) 0%, rgba(120,101,248,0.1) 40%, transparent 70%)',
-                filter: 'blur(30px)',
+                  'radial-gradient(circle, rgba(139,122,224,0.06) 0%, rgba(94,61,138,0.03) 30%, transparent 60%)',
+                filter: 'blur(60px)',
               }}
-              initial={{ x: '-50%', y: '-50%', scale: 0, opacity: 0 }}
-              animate={{ x: '-50%', y: '-50%', scale: [0, 3, 5], opacity: [0, 0.8, 0] }}
-              transition={{ duration: 1.2, ease: EASE }}
+              initial={{ x: '-50%', y: '-50%', scale: 0.5, opacity: 0 }}
+              animate={{ x: '-50%', y: '-50%', scale: 1.2, opacity: 1 }}
+              transition={{ duration: 0.8, ease: EASE }}
             />
           </motion.div>
         )}
@@ -95,42 +95,42 @@ function DesktopLayout() {
             key="page-content"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1.2, ease: EASE }}
+            transition={{ duration: 1.0, ease: EASE }}
             className="relative z-[20]"
           >
             {/* Navbar - 从顶部滑入 */}
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: EASE, delay: 0.4 }}
+              transition={{ duration: 0.8, ease: EASE, delay: 0.3 }}
             >
               <Navbar />
             </motion.div>
 
             <main>
-              {/* Hero - 从模糊中浮现，有 scale 感 */}
+              {/* Hero - 从模糊中浮现 */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
+                initial={{ opacity: 0, scale: 0.98, filter: 'blur(6px)' }}
                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                transition={{ duration: 1.0, ease: EASE, delay: 0.2 }}
+                transition={{ duration: 1.2, ease: EASE, delay: 0.15 }}
               >
                 <Hero />
               </motion.div>
 
               {/* Artworks - 从下方滑入 */}
               <motion.div
-                initial={{ opacity: 0, y: 40, filter: 'blur(4px)' }}
+                initial={{ opacity: 0, y: 30, filter: 'blur(3px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                transition={{ duration: 0.8, ease: EASE, delay: 0.5 }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.4 }}
               >
                 <Artworks />
               </motion.div>
 
               {/* Videos - 从下方滑入 */}
               <motion.div
-                initial={{ opacity: 0, y: 40, filter: 'blur(4px)' }}
+                initial={{ opacity: 0, y: 30, filter: 'blur(3px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                transition={{ duration: 0.8, ease: EASE, delay: 0.65 }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.55 }}
               >
                 <Videos />
               </motion.div>
@@ -138,9 +138,9 @@ function DesktopLayout() {
 
             {/* Footer */}
             <motion.footer
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: EASE, delay: 0.8 }}
+              transition={{ duration: 0.8, ease: EASE, delay: 0.65 }}
             >
               <Footer />
             </motion.footer>

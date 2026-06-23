@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, X, Sparkles, Heart, Bookmark, Eye } from 'lucide-react';
-import { getArtworks } from '@/lib/worksService';
+import { getArtworks, getLocalStorageItem } from '@/lib/worksService';
 import type { Artwork } from '@/lib/worksService';
 
 // 标签配色方案 - 让不同标签有不同颜色突出
@@ -338,7 +338,7 @@ export default function Artworks() {
       setArtworks(published);
     } catch (error) {
       console.error('Failed to fetch artworks:', error);
-      const stored = localStorage.getItem('userArtworks');
+      const stored = getLocalStorageItem('userArtworks');
       const parsed = stored ? JSON.parse(stored) : [];
       setArtworks(parsed.filter((w: Artwork) => w.status !== 'draft'));
     } finally {
@@ -351,7 +351,7 @@ export default function Artworks() {
     cats.add('全部');
     artworks.forEach(w => { if (w.category) cats.add(w.category); });
     try {
-      const stored = localStorage.getItem('imageCategories');
+      const stored = getLocalStorageItem('imageCategories');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, Video as VideoIcon } from 'lucide-react';
-import { getVideos } from '@/lib/worksService';
+import { getVideos, getLocalStorageItem } from '@/lib/worksService';
 import type { Video } from '@/lib/worksService';
 
 export default function Videos() {
@@ -20,7 +20,7 @@ export default function Videos() {
     setLoading(true);
     try {
       const dbVideos = await getVideos();
-      const stored = localStorage.getItem('userVideos');
+      const stored = getLocalStorageItem('userVideos');
       const localVideos: Video[] = stored ? JSON.parse(stored) : [];
       const videoMap = new Map<string, Video>();
       localVideos.forEach(v => videoMap.set(v.id, v));
@@ -28,7 +28,7 @@ export default function Videos() {
       setVideos(Array.from(videoMap.values()));
     } catch (error) {
       console.error('Failed to fetch videos:', error);
-      const stored = localStorage.getItem('userVideos');
+      const stored = getLocalStorageItem('userVideos');
       setVideos(stored ? JSON.parse(stored) : []);
     } finally {
       setLoading(false);
@@ -40,7 +40,7 @@ export default function Videos() {
     cats.add('全部');
     videos.forEach(v => { if (v.category) cats.add(v.category); });
     try {
-      const stored = localStorage.getItem('videoCategories');
+      const stored = getLocalStorageItem('videoCategories');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {

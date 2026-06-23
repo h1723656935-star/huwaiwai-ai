@@ -1,0 +1,7 @@
+fix: 修复视频上传失败 - orientation列不存在时降级
+
+Supabase videos表还没有orientation列，导致insert/update时报错。
+修复：
+- createVideo 的降级路径已正确排除 orientation（之前已加注释）
+- updateVideo 增加 orientation 降级逻辑：列不存在时移除后重试
+- videoFile 在第一次 insert 时包含，降级路径不包含（已正确实现）

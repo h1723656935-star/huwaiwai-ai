@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import * as worksService from '@/lib/worksService';
+import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from '@/lib/worksService';
 import type { Artwork, Video, Skill, TimelineItem, Stat, SocialLink, SiteConfig } from '@/lib/worksService';
 
 interface ArtworkForm {
@@ -338,14 +339,14 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    const storedImg = localStorage.getItem('imageCategories');
+    const storedImg = getLocalStorageItem('imageCategories');
     if (storedImg) { try { const p = JSON.parse(storedImg); if (Array.isArray(p) && p.length > 0) setImageCategories(p); } catch { setImageCategories(defaultImageCategories); } }
-    const storedVid = localStorage.getItem('videoCategories');
+    const storedVid = getLocalStorageItem('videoCategories');
     if (storedVid) { try { const p = JSON.parse(storedVid); if (Array.isArray(p) && p.length > 0) setVideoCategories(p); } catch { setVideoCategories(defaultVideoCategories); } }
   }, []);
 
-  useEffect(() => { localStorage.setItem('imageCategories', JSON.stringify(imageCategories)); }, [imageCategories]);
-  useEffect(() => { localStorage.setItem('videoCategories', JSON.stringify(videoCategories)); }, [videoCategories]);
+  useEffect(() => { setLocalStorageItem('imageCategories', JSON.stringify(imageCategories)); }, [imageCategories]);
+  useEffect(() => { setLocalStorageItem('videoCategories', JSON.stringify(videoCategories)); }, [videoCategories]);
 
   // 分类管理
   const handleAddImageCategory = () => {
@@ -378,10 +379,10 @@ export default function AdminPage() {
     try {
       if (type === 'image') {
         for (const art of userArtworks) await worksService.deleteArtwork(art.id);
-        localStorage.removeItem('userArtworks'); setUserArtworks([]);
+        removeLocalStorageItem('userArtworks'); setUserArtworks([]);
       } else {
         for (const vid of userVideos) await worksService.deleteVideo(vid.id);
-        localStorage.removeItem('userVideos'); setUserVideos([]);
+        removeLocalStorageItem('userVideos'); setUserVideos([]);
       }
       alert('清空完成');
     } catch (error) { console.error('Clear failed:', error); alert('清空失败：' + (error as Error).message); }
