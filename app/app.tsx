@@ -9,6 +9,7 @@ import Artworks from '@/components/Artworks';
 import Videos from '@/components/Videos';
 import Footer from '@/components/Footer';
 import Intro3D from '@/components/Intro3D';
+import AuroraBackground from '@/components/AuroraBackground';
 import MoliCharacter from '@/components/MoliCharacter';
 import CustomCursor from '@/components/CustomCursor';
 import MouseGlow from '@/components/MouseGlow';
@@ -45,6 +46,9 @@ function DesktopLayout() {
     >
       {isLoaded && <CustomCursor />}
       <MouseGlow />
+
+      {/* ─── PC端动态背景（极光粒子星河） ─── */}
+      {!showIntro && <AuroraBackground />}
 
       {/* ─── Intro 3D 动画 ─── */}
       <AnimatePresence>

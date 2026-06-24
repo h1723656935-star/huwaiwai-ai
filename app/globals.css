@@ -99,8 +99,7 @@
   }
 
   body {
-    background: linear-gradient(180deg, #0C0A14 0%, #141220 40%, #1A1728 100%);
-    background-attachment: fixed;
+    background: #0C0A14;
     color: var(--foreground);
     font-family: var(--font-body);
     font-size: 16px;
