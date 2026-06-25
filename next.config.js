@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
+const isCfBuild = process.env.CF_BUILD === '1';
+
 const nextConfig = {
   images: {
     domains: ['images.unsplash.com', 'picsum.photos'],
-    unoptimized: process.env.CF_BUILD === '1',
+    unoptimized: isCfBuild,
   },
-  ...(process.env.CF_BUILD === '1' ? {
+  ...(isCfBuild ? {
     output: 'export',
     trailingSlash: true,
   } : {}),
