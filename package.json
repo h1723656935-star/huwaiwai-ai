@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "next-on-pages",
+    "build:cf": "node -e \"const fs=require('fs'); if(fs.existsSync('app/api'))fs.renameSync('app/api','_api_backup')\" && node -e \"process.env.CF_BUILD='1'; require('child_process').execSync('npx next build',{stdio:'inherit'})\" && node -e \"const fs=require('fs'); if(fs.existsSync('_api_backup'))fs.renameSync('_api_backup','app/api')\"",
     "start": "next start",
     "lint": "next lint"
   },
