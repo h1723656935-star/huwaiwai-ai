@@ -131,7 +131,7 @@ function VideoEditDetailPC({
                   </div>
                 </>
               ) : (
-                <video src={edit.videoUrl} controls autoPlay className="w-full h-full" poster={edit.thumbnail} />
+                <video src={edit.videoFile || edit.videoUrl} controls autoPlay className="w-full h-full" poster={edit.thumbnail} />
               )}
             </div>
           </div>

@@ -37,6 +37,7 @@ interface VideoEditForm {
   description: string;
   thumbnail: string;
   videoUrl: string;
+  videoFile: string;
   duration: string;
   category: string;
   tags: string;
@@ -314,12 +315,14 @@ export default function AdminPage() {
 
   // 视频剪辑状态
   const [videoEditForm, setVideoEditForm] = useState<VideoEditForm>({
-    title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published',
+    title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published',
   });
   const [editingVideoEdit, setEditingVideoEdit] = useState<worksService.VideoEdit | null>(null);
   const [videoEditList, setVideoEditList] = useState<worksService.VideoEdit[]>([]);
   const [videoEditThumbnailPreview, setVideoEditThumbnailPreview] = useState<string | null>(null);
+  const [videoEditPreview, setVideoEditPreview] = useState<string | null>(null);
   const [videoEditDragOver, setVideoEditDragOver] = useState(false);
+  const [videoEditFileDragOver, setVideoEditFileDragOver] = useState(false);
   const [videoEditCategory, setVideoEditCategory] = useState('MV剪辑');
   const defaultVideoEditCategories = ['MV剪辑', 'Vlog', '广告片', '短片', '混剪', '特效'];
   const [videoEditCategories, setVideoEditCategories] = useState<string[]>(defaultVideoEditCategories);
@@ -501,6 +504,70 @@ export default function AdminPage() {
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
 
+  // 视频剪辑 - 本地视频文件上传
+  const handleVideoEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('video/')) return alert('请上传视频文件');
+      if (file.size > 50 * 1024 * 1024) return alert('视频文件太大，请上传小于50MB的视频');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const b = reader.result as string;
+        setVideoEditPreview(b);
+        setVideoEditForm({ ...videoEditForm, videoFile: b });
+        // 自动生成缩略图
+        const video = document.createElement('video');
+        video.src = b; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
+        video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
+        video.onseeked = () => {
+          const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const t = canvas.toDataURL('image/jpeg', 0.8);
+            setVideoEditThumbnailPreview(t);
+            setVideoEditForm(prev => ({ ...prev, thumbnail: t }));
+          }
+          URL.revokeObjectURL(video.src);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 视频剪辑 - 拖拽上传视频
+  const handleVideoEditDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setVideoEditFileDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) return alert('请拖入视频文件');
+    if (file.size > 50 * 1024 * 1024) return alert('视频文件太大，请上传小于50MB的视频');
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const b = reader.result as string;
+      setVideoEditPreview(b);
+      setVideoEditForm({ ...videoEditForm, videoFile: b });
+      const video = document.createElement('video');
+      video.src = b; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
+      video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const t = canvas.toDataURL('image/jpeg', 0.8);
+          setVideoEditThumbnailPreview(t);
+          setVideoEditForm(prev => ({ ...prev, thumbnail: t }));
+        }
+        URL.revokeObjectURL(video.src);
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleImageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (imageForm.categories.length === 0) return alert('️ 请先选择至少一个分类');
@@ -657,8 +724,8 @@ export default function AdminPage() {
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
-    setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
-    setVideoEditThumbnailPreview(null);
+    setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+    setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
   };
 
   const handleEditVideo = (video: Video) => {
@@ -700,6 +767,7 @@ export default function AdminPage() {
         category: videoEditForm.category,
         tags: videoEditForm.tags.split(',').map(t => t.trim()).filter(Boolean),
         software: videoEditForm.software.split(',').map(t => t.trim()).filter(Boolean),
+        videoFile: videoEditForm.videoFile || undefined,
         prompt: videoEditForm.prompt,
         workflow: videoEditForm.workflow.split('\n').map(t => t.trim()).filter(Boolean),
         status: videoEditForm.status,
@@ -709,8 +777,8 @@ export default function AdminPage() {
       } else {
         await worksService.createVideoEdit(data);
       }
-      setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
-      setEditingVideoEdit(null); setVideoEditThumbnailPreview(null);
+      setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+      setEditingVideoEdit(null); setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       loadAllData();
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
@@ -724,6 +792,7 @@ export default function AdminPage() {
       description: edit.description || '',
       thumbnail: edit.thumbnail || '',
       videoUrl: edit.videoUrl || '',
+      videoFile: edit.videoFile || '',
       duration: edit.duration || '00:00',
       category: edit.category || 'MV剪辑',
       tags: (edit.tags || []).join(', '),
@@ -733,6 +802,7 @@ export default function AdminPage() {
       status: edit.status || 'published',
     });
     setVideoEditThumbnailPreview(edit.thumbnail || null);
+    setVideoEditPreview(edit.videoFile || null);
     setWorksTab('videoEdit'); setEditorMode('edit');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -744,8 +814,8 @@ export default function AdminPage() {
       setVideoEditList(prev => prev.filter(e => e.id !== id));
       if (editingVideoEdit?.id === id) {
         setEditingVideoEdit(null);
-        setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
-        setVideoEditThumbnailPreview(null);
+        setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+        setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
       }
       alert('删除成功！');
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
@@ -1154,53 +1224,88 @@ export default function AdminPage() {
                         <ThemedTextarea value={videoEditForm.workflow} onChange={(e) => setVideoEditForm({ ...videoEditForm, workflow: e.target.value })} placeholder="每行一个步骤" rows={4} />
                       </div>
                       <div>
-                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频链接</label>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频文件</label>
+                        {!videoEditPreview ? (
+                          <div
+                            className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                            style={{
+                              borderColor: videoEditFileDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
+                              background: videoEditFileDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
+                            }}
+                            onClick={() => document.getElementById('video-edit-file-upload')?.click()}
+                            onDragOver={handleDragOver}
+                            onDragEnter={() => setVideoEditFileDragOver(true)}
+                            onDragLeave={() => setVideoEditFileDragOver(false)}
+                            onDrop={handleVideoEditDrop}
+                          >
+                            <input id="video-edit-file-upload" type="file" accept="video/*" className="hidden" onChange={handleVideoEditFileUpload} />
+                            <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                            <p className="text-sm" style={{ color: videoEditFileDragOver ? '#A991FF' : THEME.text.muted }}>
+                              {videoEditFileDragOver ? '松开以上传视频' : '点击或拖拽上传视频（最大50MB）'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="relative rounded-xl overflow-hidden">
+                            <video src={videoEditPreview} controls className="w-full" style={{ maxHeight: '300px' }} />
+                            <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, videoFile: '', thumbnail: '' }); setVideoEditPreview(null); setVideoEditThumbnailPreview(null); }}
+                              className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
+                              <Icons.X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频链接（可选，用于外部视频）</label>
                         <ThemedInput type="url" value={videoEditForm.videoUrl} onChange={(e) => setVideoEditForm({ ...videoEditForm, videoUrl: e.target.value })} placeholder="视频文件URL" />
                       </div>
-                      <div
-                        className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
-                        style={{
-                          borderColor: videoEditDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
-                          background: videoEditDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
-                        }}
-                        onClick={() => document.getElementById('video-edit-thumbnail-upload')?.click()}
-                        onDragOver={handleDragOver}
-                        onDragEnter={() => setVideoEditDragOver(true)}
-                        onDragLeave={() => setVideoEditDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setVideoEditDragOver(false);
-                          const file = e.dataTransfer.files[0];
-                          if (!file) return;
-                          if (!file.type.startsWith('image/')) return alert('请拖入图片文件');
-                          const reader = new FileReader();
-                          reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
-                          reader.readAsDataURL(file);
-                        }}
-                      >
-                        <input id="video-edit-thumbnail-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (!file.type.startsWith('image/')) return alert('请上传图片文件');
-                            const reader = new FileReader();
-                            reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
-                            reader.readAsDataURL(file);
-                          }
-                        }} />
-                        <Icons.Image className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
-                        <p className="text-sm" style={{ color: videoEditDragOver ? '#A991FF' : THEME.text.muted }}>
-                          {videoEditDragOver ? '松开以上传封面' : '点击或拖拽上传封面图'}
-                        </p>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>封面图</label>
+                        {!videoEditThumbnailPreview ? (
+                          <div
+                            className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                            style={{
+                              borderColor: videoEditDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
+                              background: videoEditDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
+                            }}
+                            onClick={() => document.getElementById('video-edit-thumbnail-upload')?.click()}
+                            onDragOver={handleDragOver}
+                            onDragEnter={() => setVideoEditDragOver(true)}
+                            onDragLeave={() => setVideoEditDragOver(false)}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setVideoEditDragOver(false);
+                              const file = e.dataTransfer.files[0];
+                              if (!file) return;
+                              if (!file.type.startsWith('image/')) return alert('请拖入图片文件');
+                              const reader = new FileReader();
+                              reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
+                              reader.readAsDataURL(file);
+                            }}
+                          >
+                            <input id="video-edit-thumbnail-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (!file.type.startsWith('image/')) return alert('请上传图片文件');
+                                const reader = new FileReader();
+                                reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
+                                reader.readAsDataURL(file);
+                              }
+                            }} />
+                            <Icons.Image className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                            <p className="text-sm" style={{ color: videoEditDragOver ? '#A991FF' : THEME.text.muted }}>
+                              {videoEditDragOver ? '松开以上传封面' : '点击或拖拽上传封面图'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="relative rounded-xl overflow-hidden">
+                            <img src={videoEditThumbnailPreview} alt="Preview" className="w-full" style={{ maxHeight: '300px', objectFit: 'contain' }} />
+                            <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, thumbnail: '' }); setVideoEditThumbnailPreview(null); }}
+                              className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
+                              <Icons.X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      {videoEditThumbnailPreview && (
-                        <div className="relative rounded-xl overflow-hidden">
-                          <img src={videoEditThumbnailPreview} alt="Preview" className="w-full" style={{ maxHeight: '200px', objectFit: 'contain' }} />
-                          <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, thumbnail: '' }); setVideoEditThumbnailPreview(null); }}
-                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
-                            <Icons.X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
                       <div>
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>发布状态</label>
                         <ThemedSelect value={videoEditForm.status} onChange={(e) => setVideoEditForm({ ...videoEditForm, status: e.target.value as 'draft' | 'published' })}>

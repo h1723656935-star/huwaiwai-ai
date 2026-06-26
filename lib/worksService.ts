@@ -48,6 +48,7 @@ export interface VideoEdit {
   description?: string;
   thumbnail: string;
   videoUrl: string;
+  videoFile?: string;
   duration: string;
   category: string;
   tags: string[];
@@ -1276,6 +1277,7 @@ export async function getVideoEditById(id: string): Promise<VideoEdit | null> {
 
 export async function createVideoEdit(edit: Omit<VideoEdit, 'id' | 'created_at'>): Promise<VideoEdit | null> {
   try {
+    // 上传封面图
     let thumbnailUrl = edit.thumbnail || '';
     if (edit.thumbnail && edit.thumbnail.startsWith('data:')) {
       const base64Data = edit.thumbnail.split(',')[1];
@@ -1289,11 +1291,29 @@ export async function createVideoEdit(edit: Omit<VideoEdit, 'id' | 'created_at'>
         thumbnailUrl = urlData.publicUrl;
       }
     }
+    // 上传视频文件到 Storage
+    let videoFileUrl = edit.videoFile || '';
+    if (edit.videoFile && edit.videoFile.startsWith('data:')) {
+      const base64Data = edit.videoFile.split(',')[1];
+      const mimeMatch = edit.videoFile.match(/data:([^;]+);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'video/mp4';
+      const ext = mimeType.split('/')[1] || 'mp4';
+      const blob = b64toBlob(base64Data, mimeType);
+      const fileName = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, blob, { contentType: mimeType });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
+        videoFileUrl = urlData.publicUrl;
+      }
+    }
     const insertData: any = {
       title: edit.title,
       description: edit.description || '',
       thumbnail: thumbnailUrl,
       videoUrl: edit.videoUrl || '',
+      videoFile: videoFileUrl,
       duration: edit.duration || '',
       category: edit.category || '',
       tags: JSON.stringify(edit.tags || []),
@@ -1333,6 +1353,23 @@ export async function updateVideoEdit(id: string, edit: Partial<VideoEdit>): Pro
       }
     }
     if (edit.videoUrl !== undefined) updateData.videoUrl = edit.videoUrl;
+    if (edit.videoFile !== undefined) {
+      if (edit.videoFile.startsWith('data:')) {
+        const base64Data = edit.videoFile.split(',')[1];
+        const mimeMatch = edit.videoFile.match(/data:([^;]+);/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'video/mp4';
+        const ext = mimeType.split('/')[1] || 'mp4';
+        const blob = b64toBlob(base64Data, mimeType);
+        const fileName = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('media').upload(fileName, blob, { contentType: mimeType });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
+          updateData.videoFile = urlData.publicUrl;
+        }
+      } else {
+        updateData.videoFile = edit.videoFile;
+      }
+    }
     if (edit.duration !== undefined) updateData.duration = edit.duration;
     if (edit.category !== undefined) updateData.category = edit.category;
     if (edit.tags !== undefined) updateData.tags = JSON.stringify(edit.tags);

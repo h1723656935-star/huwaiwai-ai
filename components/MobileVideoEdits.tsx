@@ -154,7 +154,7 @@ function VideoEditDetail({
             </>
           ) : (
             <video
-              src={edit.videoUrl}
+              src={edit.videoFile || edit.videoUrl}
               controls
               autoPlay
               className="w-full h-full"
