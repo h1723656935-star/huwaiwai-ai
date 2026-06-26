@@ -1400,6 +1400,19 @@ export async function deleteVideoEdit(id: string): Promise<boolean> {
   }
 }
 
+// 直接上传大文件到 Supabase Storage（不经过 Base64，支持 2GB+）
+export async function uploadToStorage(bucket: string, path: string, file: File): Promise<string> {
+  const { data, error } = await supabase.storage.from(bucket).upload(path, file, {
+    contentType: file.type,
+    duplex: 'half',
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
 function b64toBlob(base64: string, contentType: string): Blob {
   const byteCharacters = atob(base64);
   const byteNumbers = new Array(byteCharacters.length);

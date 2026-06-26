@@ -321,6 +321,9 @@ export default function AdminPage() {
   const [videoEditList, setVideoEditList] = useState<worksService.VideoEdit[]>([]);
   const [videoEditThumbnailPreview, setVideoEditThumbnailPreview] = useState<string | null>(null);
   const [videoEditPreview, setVideoEditPreview] = useState<string | null>(null);
+  const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
+  const [videoEditUploading, setVideoEditUploading] = useState(false);
+  const [videoEditUploadProgress, setVideoEditUploadProgress] = useState(0);
   const [videoEditDragOver, setVideoEditDragOver] = useState(false);
   const [videoEditFileDragOver, setVideoEditFileDragOver] = useState(false);
   const [videoEditCategory, setVideoEditCategory] = useState('MV剪辑');
@@ -504,36 +507,48 @@ export default function AdminPage() {
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
 
-  // 视频剪辑 - 本地视频文件上传
-  const handleVideoEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('video/')) return alert('请上传视频文件');
-      if (file.size > 50 * 1024 * 1024) return alert('视频文件太大，请上传小于50MB的视频');
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const b = reader.result as string;
-        setVideoEditPreview(b);
-        setVideoEditForm({ ...videoEditForm, videoFile: b });
-        // 自动生成缩略图
-        const video = document.createElement('video');
-        video.src = b; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
-        video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
-        video.onseeked = () => {
+  // 从 File 对象生成缩略图
+  const generateThumbnailFromFile = (file: File) => {
+    return new Promise<string | null>((resolve) => {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.src = url; video.muted = true; video.playsInline = true; video.preload = 'metadata';
+      video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
+      video.onseeked = () => {
+        try {
           const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const t = canvas.toDataURL('image/jpeg', 0.8);
-            setVideoEditThumbnailPreview(t);
-            setVideoEditForm(prev => ({ ...prev, thumbnail: t }));
-          }
-          URL.revokeObjectURL(video.src);
-        };
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else { resolve(null); }
+        } catch { resolve(null); }
+        URL.revokeObjectURL(url);
       };
-      reader.readAsDataURL(file);
+      video.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
+    });
+  };
+
+  // 视频剪辑 - 处理视频文件选择（保存 File 对象，不转 Base64）
+  const processVideoEditFile = async (file: File) => {
+    if (!file.type.startsWith('video/')) return alert('请上传视频文件');
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    if (file.size > maxSize) return alert('视频文件不能超过 2GB');
+    setVideoEditFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setVideoEditPreview(previewUrl);
+    // 自动生成缩略图
+    const thumb = await generateThumbnailFromFile(file);
+    if (thumb) {
+      setVideoEditThumbnailPreview(thumb);
+      setVideoEditForm(prev => ({ ...prev, thumbnail: thumb }));
     }
+  };
+
+  const handleVideoEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processVideoEditFile(file);
   };
 
   // 视频剪辑 - 拖拽上传视频
@@ -541,31 +556,7 @@ export default function AdminPage() {
     e.preventDefault();
     setVideoEditFileDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('video/')) return alert('请拖入视频文件');
-    if (file.size > 50 * 1024 * 1024) return alert('视频文件太大，请上传小于50MB的视频');
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const b = reader.result as string;
-      setVideoEditPreview(b);
-      setVideoEditForm({ ...videoEditForm, videoFile: b });
-      const video = document.createElement('video');
-      video.src = b; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
-      video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const t = canvas.toDataURL('image/jpeg', 0.8);
-          setVideoEditThumbnailPreview(t);
-          setVideoEditForm(prev => ({ ...prev, thumbnail: t }));
-        }
-        URL.revokeObjectURL(video.src);
-      };
-    };
-    reader.readAsDataURL(file);
+    if (file) processVideoEditFile(file);
   };
 
   const handleImageSubmit = async (e: React.FormEvent) => {
@@ -758,16 +749,33 @@ export default function AdminPage() {
   const handleSubmitVideoEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // 如果有本地视频文件，先直传到 Supabase Storage
+      let videoFileUrl = videoEditForm.videoFile || '';
+      if (videoEditFile) {
+        setVideoEditUploading(true);
+        setVideoEditUploadProgress(10);
+        const ext = videoEditFile.name.split('.').pop() || 'mp4';
+        const fileName = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        try {
+          videoFileUrl = await worksService.uploadToStorage('media', fileName, videoEditFile);
+          setVideoEditUploadProgress(90);
+        } catch (err) {
+          alert('视频上传失败，请重试：' + (err instanceof Error ? err.message : String(err)));
+          setVideoEditUploading(false);
+          return;
+        }
+      }
+
       const data = {
         title: videoEditForm.title,
         description: videoEditForm.description,
         thumbnail: videoEditForm.thumbnail,
         videoUrl: videoEditForm.videoUrl,
+        videoFile: videoFileUrl,
         duration: videoEditForm.duration,
         category: videoEditForm.category,
         tags: videoEditForm.tags.split(',').map(t => t.trim()).filter(Boolean),
         software: videoEditForm.software.split(',').map(t => t.trim()).filter(Boolean),
-        videoFile: videoEditForm.videoFile || undefined,
         prompt: videoEditForm.prompt,
         workflow: videoEditForm.workflow.split('\n').map(t => t.trim()).filter(Boolean),
         status: videoEditForm.status,
@@ -779,10 +787,14 @@ export default function AdminPage() {
       }
       setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
       setEditingVideoEdit(null); setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
+      setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0);
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       loadAllData();
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
-    } catch (error) { alert('操作失败，请重试'); }
+    } catch (error) {
+      setVideoEditUploading(false);
+      alert('操作失败，请重试');
+    }
   };
 
   const handleEditVideoEdit = (edit: worksService.VideoEdit) => {
@@ -1241,13 +1253,13 @@ export default function AdminPage() {
                             <input id="video-edit-file-upload" type="file" accept="video/*" className="hidden" onChange={handleVideoEditFileUpload} />
                             <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
                             <p className="text-sm" style={{ color: videoEditFileDragOver ? '#A991FF' : THEME.text.muted }}>
-                              {videoEditFileDragOver ? '松开以上传视频' : '点击或拖拽上传视频（最大50MB）'}
+                              {videoEditFileDragOver ? '松开以上传' : videoEditUploading ? '上传中...' : videoEditFile ? `已选择: ${videoEditFile.name} (${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB)` : '点击或拖拽上传视频（最大2GB）'}
                             </p>
                           </div>
                         ) : (
                           <div className="relative rounded-xl overflow-hidden">
                             <video src={videoEditPreview} controls className="w-full" style={{ maxHeight: '300px' }} />
-                            <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, videoFile: '', thumbnail: '' }); setVideoEditPreview(null); setVideoEditThumbnailPreview(null); }}
+                            <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, videoFile: '', thumbnail: '' }); setVideoEditPreview(null); setVideoEditThumbnailPreview(null); setVideoEditFile(null); }}
                               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
                               <Icons.X className="w-4 h-4" />
                             </button>
@@ -1753,7 +1765,7 @@ export default function AdminPage() {
                   disabled={uploading}
                   variant="gradient"
                 >
-                  {uploading ? '上传中...' : (editingArtwork || editingVideo || editingVideoEdit ? '保存修改' : (worksTab === 'image' ? '上传图片' : worksTab === 'videoEdit' ? '上传视频剪辑' : '上传视频'))}
+                  {uploading || videoEditUploading ? '上传中...' : (editingArtwork || editingVideo || editingVideoEdit ? '保存修改' : (worksTab === 'image' ? '上传图片' : worksTab === 'videoEdit' ? '上传视频剪辑' : '上传视频'))}
                 </ThemedButton>
               </div>
             </div>
