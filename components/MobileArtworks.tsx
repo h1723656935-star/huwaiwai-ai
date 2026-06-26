@@ -65,6 +65,78 @@ function distributeToColumns(works: Artwork[], colCount: number): Artwork[][] {
   return cols;
 }
 
+// 图片加载状态 Hook
+function useImageLoad(src: string) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  useEffect(() => {
+    if (!src) { setStatus('error'); return; }
+    setStatus('loading');
+    const img = new Image();
+    img.onload = () => setStatus('loaded');
+    img.onerror = () => setStatus('error');
+    img.src = src;
+  }, [src]);
+  return status;
+}
+
+// 占位符 SVG（紫晶渐变）
+const PLACEHOLDER_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='500'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231A1628'/%3E%3Cstop offset='100%25' stop-color='%232A1E40'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%235E3D8A' font-size='14' font-family='sans-serif'%3E图片加载中...%3C/text%3E%3C/svg%3E`;
+
+// 作品卡片组件（带加载状态）
+function ArtworkCard({ work, onClick }: { work: Artwork; onClick: () => void }) {
+  const imgStatus = useImageLoad(work.image);
+  const isError = imgStatus === 'error';
+  const isLoading = imgStatus === 'loading';
+
+  return (
+    <motion.div
+      className="rounded-xl overflow-hidden relative"
+      style={{ background: 'rgba(255,255,255,0.03)', minHeight: 120 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      onClick={onClick}
+    >
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-5 h-5 border-2 border-[#7865F8]/20 border-t-[#7865F8] rounded-full"
+          />
+        </div>
+      )}
+      <img
+        src={isError ? PLACEHOLDER_SVG : work.image}
+        alt={work.title}
+        className="w-full object-cover transition-opacity duration-300"
+        style={{
+          display: 'block',
+          opacity: isLoading ? 0.3 : 1,
+          minHeight: isError ? 120 : undefined,
+        }}
+        loading="lazy"
+        onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_SVG; }}
+      />
+      {/* 底部渐变 + 标题 */}
+      <div className="absolute bottom-0 left-0 right-0 p-2"
+        style={{
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+        }}
+      >
+        <p className="text-white text-xs font-medium truncate">{work.title}</p>
+        {(work.categories?.[0] || work.category) && (
+          <span
+            className="inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5"
+            style={getCategoryColor(work.categories?.[0] || work.category || '')}
+          >
+            {work.categories?.[0] || work.category}
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function MobileArtworks() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,38 +237,11 @@ export default function MobileArtworks() {
           {columns.map((col, colIdx) => (
             <div key={colIdx} className="flex-1 flex flex-col gap-2">
               {col.map((work) => (
-                <motion.div
+                <ArtworkCard
                   key={work.id}
-                  className="rounded-xl overflow-hidden relative"
-                  style={{ background: 'rgba(255,255,255,0.03)' }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  work={work}
                   onClick={() => setSelectedWork(work)}
-                >
-                  <img
-                    src={work.image}
-                    alt={work.title}
-                    className="w-full object-cover"
-                    style={{ display: 'block' }}
-                    loading="lazy"
-                  />
-                  {/* 底部渐变 + 标题 */}
-                  <div className="absolute bottom-0 left-0 right-0 p-2"
-                    style={{
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                    }}
-                  >
-                    <p className="text-white text-xs font-medium truncate">{work.title}</p>
-                    {(work.categories?.[0] || work.category) && (
-                      <span
-                        className="inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5"
-                        style={getCategoryColor(work.categories?.[0] || work.category || '')}
-                      >
-                        {work.categories?.[0] || work.category}
-                      </span>
-                    )}
-                  </div>
-                </motion.div>
+                />
               ))}
             </div>
           ))}
@@ -244,6 +289,7 @@ export default function MobileArtworks() {
                 alt={selectedWork.title}
                 className="w-full object-cover"
                 style={{ maxHeight: '60vh' }}
+                onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_SVG; }}
               />
 
               <div className="px-4 py-4 space-y-4">

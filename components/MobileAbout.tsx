@@ -32,7 +32,12 @@ export default function MobileAbout() {
           border: '2px solid rgba(120,101,248,0.4)',
         }}>
           {config.avatarUrl ? (
-            <img src={config.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            <img
+              src={config.avatarUrl}
+              alt="avatar"
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl" style={{
               background: 'linear-gradient(135deg, #7865F8, #A991FF)',
