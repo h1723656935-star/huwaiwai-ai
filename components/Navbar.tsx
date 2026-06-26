@@ -17,6 +17,7 @@ export default function Navbar() {
     { label: '首页', href: '#home' },
     { label: 'AI绘画', href: '#artworks' },
     { label: 'AI视频', href: '#videos' },
+    { label: '视频剪辑', href: '#video-edits' },
     { label: '关于', href: '#about' },
   ];
 

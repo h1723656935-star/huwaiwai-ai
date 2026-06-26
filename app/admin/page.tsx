@@ -32,6 +32,20 @@ interface VideoForm {
   orientation: 'auto' | 'vertical' | 'horizontal';
 }
 
+interface VideoEditForm {
+  title: string;
+  description: string;
+  thumbnail: string;
+  videoUrl: string;
+  duration: string;
+  category: string;
+  tags: string;
+  software: string;
+  prompt: string;
+  workflow: string;
+  status: 'draft' | 'published';
+}
+
 interface SkillForm { name: string; level: string; }
 interface TimelineForm { year: string; title: string; description: string; }
 interface StatForm { value: string; label: string; suffix: string; }
@@ -41,7 +55,7 @@ const iconOptions = ['Mail', 'MessageCircle', 'Video', 'Music', 'BookOpen', 'Git
 const ADMIN_PASSWORD = 'ai@studio2024';
 
 type MainTab = 'works' | 'categories' | 'about' | 'social' | 'config' | 'stats';
-type WorksTab = 'image' | 'video';
+type WorksTab = 'image' | 'video' | 'videoEdit';
 type AboutTab = 'skills' | 'timeline' | 'stats';
 type EditorMode = 'edit' | 'preview';
 
@@ -298,6 +312,19 @@ export default function AdminPage() {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoDragOver, setVideoDragOver] = useState(false);
 
+  // 视频剪辑状态
+  const [videoEditForm, setVideoEditForm] = useState<VideoEditForm>({
+    title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published',
+  });
+  const [editingVideoEdit, setEditingVideoEdit] = useState<worksService.VideoEdit | null>(null);
+  const [videoEditList, setVideoEditList] = useState<worksService.VideoEdit[]>([]);
+  const [videoEditThumbnailPreview, setVideoEditThumbnailPreview] = useState<string | null>(null);
+  const [videoEditDragOver, setVideoEditDragOver] = useState(false);
+  const [videoEditCategory, setVideoEditCategory] = useState('MV剪辑');
+  const defaultVideoEditCategories = ['MV剪辑', 'Vlog', '广告片', '短片', '混剪', '特效'];
+  const [videoEditCategories, setVideoEditCategories] = useState<string[]>(defaultVideoEditCategories);
+  const [newVideoEditCategory, setNewVideoEditCategory] = useState('');
+
   const [skillForm, setSkillForm] = useState<SkillForm>({ name: '', level: '80' });
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [timelineForm, setTimelineForm] = useState<TimelineForm>({ year: '', title: '', description: '' });
@@ -329,11 +356,11 @@ export default function AdminPage() {
 
   const loadAllData = async () => {
     try {
-      const [artworks, videos, skillsData, timelineData, statsData, socialLinksData, config] = await Promise.all([
-        worksService.getArtworks(), worksService.getVideos(), worksService.getSkills(),
+      const [artworks, videos, videoEdits, skillsData, timelineData, statsData, socialLinksData, config] = await Promise.all([
+        worksService.getArtworks(), worksService.getVideos(), worksService.getVideoEdits(), worksService.getSkills(),
         worksService.getTimeline(), worksService.getStats(), worksService.getSocialLinks(), worksService.getSiteConfig(),
       ]);
-      setUserArtworks(artworks); setUserVideos(videos); setSkills(skillsData);
+      setUserArtworks(artworks); setUserVideos(videos); setVideoEditList(videoEdits); setSkills(skillsData);
       setTimeline(timelineData); setStats(statsData); setSocialLinks(socialLinksData); setSiteConfig(config);
     } catch (error) { console.error('Failed to load data:', error); }
   };
@@ -373,13 +400,17 @@ export default function AdminPage() {
     if (videoCategory === cat) setVideoCategory(f[0] || defaultVideoCategories[0]);
   };
 
-  const handleClearAllWorks = async (type: 'image' | 'video') => {
-    if (!confirm(`确定要清空所有${type === 'image' ? '图片' : '视频'}作品吗？此操作不可恢复！`)) return;
+  const handleClearAllWorks = async (type: 'image' | 'video' | 'videoEdit') => {
+    const typeLabel = type === 'image' ? '图片' : type === 'videoEdit' ? '视频剪辑' : '视频';
+    if (!confirm(`确定要清空所有${typeLabel}作品吗？此操作不可恢复！`)) return;
     if (!confirm('再次确认：所有作品数据将被永久删除！')) return;
     try {
       if (type === 'image') {
         for (const art of userArtworks) await worksService.deleteArtwork(art.id);
         removeLocalStorageItem('userArtworks'); setUserArtworks([]);
+      } else if (type === 'videoEdit') {
+        for (const edit of videoEditList) await worksService.deleteVideoEdit(edit.id);
+        setVideoEditList([]);
       } else {
         for (const vid of userVideos) await worksService.deleteVideo(vid.id);
         removeLocalStorageItem('userVideos'); setUserVideos([]);
@@ -621,11 +652,13 @@ export default function AdminPage() {
   };
 
   const handleCancelEdit = () => {
-    setEditingArtwork(null); setEditingVideo(null);
+    setEditingArtwork(null); setEditingVideo(null); setEditingVideoEdit(null);
     setImageForm({ title: '', categories: [], tags: '', date: new Date().toISOString().split('T')[0], image: '', prompt: '', negativePrompt: '', model: '', dimensions: '', description: '', status: 'published' });
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
+    setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+    setVideoEditThumbnailPreview(null);
   };
 
   const handleEditVideo = (video: Video) => {
@@ -651,6 +684,71 @@ export default function AdminPage() {
       await worksService.deleteVideo(id); setUserVideos(prev => prev.filter(v => v.id !== id));
       if (editingVideo?.id === id) { setEditingVideo(null); setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' }); setVideoThumbnailPreview(null); setVideoPreview(null); }
       alert('删除成功！'); if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
+    } catch (error) { alert('删除失败，请重试'); }
+  };
+
+  // 视频剪辑 CRUD
+  const handleSubmitVideoEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = {
+        title: videoEditForm.title,
+        description: videoEditForm.description,
+        thumbnail: videoEditForm.thumbnail,
+        videoUrl: videoEditForm.videoUrl,
+        duration: videoEditForm.duration,
+        category: videoEditForm.category,
+        tags: videoEditForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+        software: videoEditForm.software.split(',').map(t => t.trim()).filter(Boolean),
+        prompt: videoEditForm.prompt,
+        workflow: videoEditForm.workflow.split('\n').map(t => t.trim()).filter(Boolean),
+        status: videoEditForm.status,
+      };
+      if (editingVideoEdit) {
+        await worksService.updateVideoEdit(editingVideoEdit.id, data);
+      } else {
+        await worksService.createVideoEdit(data);
+      }
+      setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+      setEditingVideoEdit(null); setVideoEditThumbnailPreview(null);
+      setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
+      loadAllData();
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
+    } catch (error) { alert('操作失败，请重试'); }
+  };
+
+  const handleEditVideoEdit = (edit: worksService.VideoEdit) => {
+    setEditingVideoEdit(edit);
+    setVideoEditForm({
+      title: edit.title,
+      description: edit.description || '',
+      thumbnail: edit.thumbnail || '',
+      videoUrl: edit.videoUrl || '',
+      duration: edit.duration || '00:00',
+      category: edit.category || 'MV剪辑',
+      tags: (edit.tags || []).join(', '),
+      software: (edit.software || []).join(', '),
+      prompt: edit.prompt || '',
+      workflow: (edit.workflow || []).join('\n'),
+      status: edit.status || 'published',
+    });
+    setVideoEditThumbnailPreview(edit.thumbnail || null);
+    setWorksTab('videoEdit'); setEditorMode('edit');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteVideoEdit = async (id: string) => {
+    if (!confirm('确定要删除这个视频剪辑作品吗？')) return;
+    try {
+      await worksService.deleteVideoEdit(id);
+      setVideoEditList(prev => prev.filter(e => e.id !== id));
+      if (editingVideoEdit?.id === id) {
+        setEditingVideoEdit(null);
+        setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+        setVideoEditThumbnailPreview(null);
+      }
+      alert('删除成功！');
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
     } catch (error) { alert('删除失败，请重试'); }
   };
 
@@ -808,6 +906,9 @@ export default function AdminPage() {
                     <button onClick={() => setWorksTab('video')} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={worksTab === 'video' ? THEME.gradientBtn : THEME.ghostBtn}>
                       视频作品
                     </button>
+                    <button onClick={() => setWorksTab('videoEdit')} className="px-4 py-2 rounded-lg text-sm font-medium transition-all" style={worksTab === 'videoEdit' ? THEME.gradientBtn : THEME.ghostBtn}>
+                      视频剪辑
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs" style={{ color: THEME.text.dim }}>模式：</span>
@@ -893,6 +994,11 @@ export default function AdminPage() {
                           <p className="text-sm" style={{ color: THEME.text.muted }}>请先上传图片</p>
                         </div>
                       )
+                    ) : worksTab === 'videoEdit' ? (
+                      <div className="text-center py-16">
+                        <Icons.Film className="w-12 h-12 mx-auto mb-3" style={{ color: THEME.text.dim }} />
+                        <p className="text-sm" style={{ color: THEME.text.muted }}>视频剪辑预览</p>
+                      </div>
                     ) : (
                       videoPreview ? (
                         <div className="space-y-4">
@@ -1007,6 +1113,102 @@ export default function AdminPage() {
                         </div>
                       )}
                     </form>
+                  ) : worksTab === 'videoEdit' ? (
+                    <form id="video-edit-form" onSubmit={handleSubmitVideoEdit} className="space-y-4">
+                      {editingVideoEdit && (
+                        <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(120,101,248,0.15)', border: '1px solid rgba(120,101,248,0.3)' }}>
+                          <span className="text-sm" style={{ color: THEME.text.primary }}>✏️ 正在编辑视频剪辑：<strong>{editingVideoEdit.title}</strong></span>
+                          <button type="button" onClick={handleCancelEdit} className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(255,77,79,0.2)', color: '#FF4D4F' }}>取消编辑</button>
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>标题 *</label>
+                        <ThemedInput type="text" value={videoEditForm.title} onChange={(e) => setVideoEditForm({ ...videoEditForm, title: e.target.value })} placeholder="作品标题" required />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>分类</label>
+                          <ThemedSelect value={videoEditForm.category} onChange={(e) => setVideoEditForm({ ...videoEditForm, category: e.target.value })}>
+                            {videoEditCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </ThemedSelect>
+                        </div>
+                        <div>
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长</label>
+                          <ThemedInput type="text" value={videoEditForm.duration} onChange={(e) => setVideoEditForm({ ...videoEditForm, duration: e.target.value })} placeholder="如：03:24" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>标签</label>
+                        <ThemedInput type="text" value={videoEditForm.tags} onChange={(e) => setVideoEditForm({ ...videoEditForm, tags: e.target.value })} placeholder="逗号分隔" />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>软件</label>
+                        <ThemedInput type="text" value={videoEditForm.software} onChange={(e) => setVideoEditForm({ ...videoEditForm, software: e.target.value })} placeholder="逗号分隔，如 Premiere Pro, After Effects" />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>Prompt</label>
+                        <ThemedTextarea value={videoEditForm.prompt} onChange={(e) => setVideoEditForm({ ...videoEditForm, prompt: e.target.value })} placeholder="输入 Prompt..." rows={3} />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>Workflow</label>
+                        <ThemedTextarea value={videoEditForm.workflow} onChange={(e) => setVideoEditForm({ ...videoEditForm, workflow: e.target.value })} placeholder="每行一个步骤" rows={4} />
+                      </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频链接</label>
+                        <ThemedInput type="url" value={videoEditForm.videoUrl} onChange={(e) => setVideoEditForm({ ...videoEditForm, videoUrl: e.target.value })} placeholder="视频文件URL" />
+                      </div>
+                      <div
+                        className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                        style={{
+                          borderColor: videoEditDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
+                          background: videoEditDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
+                        }}
+                        onClick={() => document.getElementById('video-edit-thumbnail-upload')?.click()}
+                        onDragOver={handleDragOver}
+                        onDragEnter={() => setVideoEditDragOver(true)}
+                        onDragLeave={() => setVideoEditDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setVideoEditDragOver(false);
+                          const file = e.dataTransfer.files[0];
+                          if (!file) return;
+                          if (!file.type.startsWith('image/')) return alert('请拖入图片文件');
+                          const reader = new FileReader();
+                          reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
+                          reader.readAsDataURL(file);
+                        }}
+                      >
+                        <input id="video-edit-thumbnail-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith('image/')) return alert('请上传图片文件');
+                            const reader = new FileReader();
+                            reader.onloadend = () => { const b = reader.result as string; setVideoEditThumbnailPreview(b); setVideoEditForm(prev => ({ ...prev, thumbnail: b })); };
+                            reader.readAsDataURL(file);
+                          }
+                        }} />
+                        <Icons.Image className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                        <p className="text-sm" style={{ color: videoEditDragOver ? '#A991FF' : THEME.text.muted }}>
+                          {videoEditDragOver ? '松开以上传封面' : '点击或拖拽上传封面图'}
+                        </p>
+                      </div>
+                      {videoEditThumbnailPreview && (
+                        <div className="relative rounded-xl overflow-hidden">
+                          <img src={videoEditThumbnailPreview} alt="Preview" className="w-full" style={{ maxHeight: '200px', objectFit: 'contain' }} />
+                          <button type="button" onClick={() => { setVideoEditForm({ ...videoEditForm, thumbnail: '' }); setVideoEditThumbnailPreview(null); }}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
+                            <Icons.X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>发布状态</label>
+                        <ThemedSelect value={videoEditForm.status} onChange={(e) => setVideoEditForm({ ...videoEditForm, status: e.target.value as 'draft' | 'published' })}>
+                          <option value="published">已发布</option>
+                          <option value="draft">草稿</option>
+                        </ThemedSelect>
+                      </div>
+                    </form>
                   ) : (
                     <form id="video-upload-form" onSubmit={handleVideoSubmit} className="space-y-4">
                       {editingVideo && (
@@ -1086,7 +1288,7 @@ export default function AdminPage() {
               <ThemedCard initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-bold" style={{ color: THEME.text.primary }}>
-                    {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : `视频作品 (${userVideos.length})`}
+                    {worksTab === 'image' ? `图片作品 (${userArtworks.length})` : worksTab === 'videoEdit' ? `视频剪辑 (${videoEditList.length})` : `视频作品 (${userVideos.length})`}
                   </h3>
                   <button type="button" onClick={() => handleClearAllWorks(worksTab)} className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1" style={{ background: 'rgba(255,77,79,0.12)', color: '#FF7878', border: '1px solid rgba(255,77,79,0.25)' }}>
                     <Icons.Trash2 className="w-3 h-3" />清空
@@ -1108,6 +1310,29 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(120,101,248,0.3) transparent' }}>
                       {filteredArtworks.map(artwork => (
                         <ArtworkCard key={artwork.id} artwork={artwork} onEdit={() => handleEditArtwork(artwork)} onDelete={() => handleDeleteArtwork(artwork.id)} />
+                      ))}
+                    </div>
+                  )
+                ) : worksTab === 'videoEdit' ? (
+                  videoEditList.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Icons.Film className="w-12 h-12 mx-auto mb-3" style={{ color: THEME.text.dim }} />
+                      <p className="text-sm" style={{ color: THEME.text.muted }}>暂无视频剪辑作品</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {videoEditList.map((edit) => (
+                        <motion.div key={edit.id} className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <img src={edit.thumbnail} className="w-16 h-10 rounded-lg object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: THEME.text.primary }}>{edit.title}</p>
+                            <p className="text-[10px]" style={{ color: THEME.text.dim }}>{edit.category} · {edit.duration}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEditVideoEdit(edit)} className="p-1.5 rounded-lg" style={{ background: 'rgba(120,101,248,0.15)' }}><Icons.Edit3 size={14} style={{ color: '#A991FF' }} /></button>
+                            <button onClick={() => handleDeleteVideoEdit(edit.id)} className="p-1.5 rounded-lg" style={{ background: 'rgba(255,77,79,0.15)' }}><Icons.Trash2 size={14} style={{ color: '#FF4D4F' }} /></button>
+                          </div>
+                        </motion.div>
                       ))}
                     </div>
                   )
@@ -1392,14 +1617,19 @@ export default function AdminPage() {
                     编辑中：<strong style={{ color: THEME.text.primary }}>{editingVideo.title}</strong>
                   </span>
                 )}
-                {!editingArtwork && !editingVideo && (
+                {editingVideoEdit && (
+                  <span className="text-sm" style={{ color: THEME.text.muted }}>
+                    编辑中：<strong style={{ color: THEME.text.primary }}>{editingVideoEdit.title}</strong>
+                  </span>
+                )}
+                {!editingArtwork && !editingVideo && !editingVideoEdit && (
                   <span className="text-sm" style={{ color: THEME.text.dim }}>
-                    {worksTab === 'image' ? '图片作品' : '视频作品'} · 编辑模式
+                    {worksTab === 'image' ? '图片作品' : worksTab === 'videoEdit' ? '视频剪辑' : '视频作品'} · 编辑模式
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-3">
-                {(editingArtwork || editingVideo) && (
+                {(editingArtwork || editingVideo || editingVideoEdit) && (
                   <ThemedButton onClick={handleCancelEdit} variant="ghost">取消编辑</ThemedButton>
                 )}
                 <ThemedButton onClick={() => setEditorMode('preview')} variant="ghost">
@@ -1409,6 +1639,8 @@ export default function AdminPage() {
                   onClick={() => {
                     if (worksTab === 'image') {
                       handleImageSubmit({ preventDefault: () => {} } as any);
+                    } else if (worksTab === 'videoEdit') {
+                      handleSubmitVideoEdit({ preventDefault: () => {} } as any);
                     } else {
                       handleVideoSubmit({ preventDefault: () => {} } as any);
                     }
@@ -1416,7 +1648,7 @@ export default function AdminPage() {
                   disabled={uploading}
                   variant="gradient"
                 >
-                  {uploading ? '上传中...' : (editingArtwork || editingVideo ? '保存修改' : (worksTab === 'image' ? '上传图片' : '上传视频'))}
+                  {uploading ? '上传中...' : (editingArtwork || editingVideo || editingVideoEdit ? '保存修改' : (worksTab === 'image' ? '上传图片' : worksTab === 'videoEdit' ? '上传视频剪辑' : '上传视频'))}
                 </ThemedButton>
               </div>
             </div>

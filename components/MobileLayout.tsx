@@ -6,6 +6,7 @@ import MobileTabBar from './MobileTabBar';
 import MobileHero from './MobileHero';
 import MobileArtworks from './MobileArtworks';
 import MobileVideos from './MobileVideos';
+import MobileVideoEdits from './MobileVideoEdits';
 import MobileAbout from './MobileAbout';
 import MoliCharacter from './MoliCharacter';
 
@@ -28,6 +29,7 @@ export default function MobileLayout() {
         {activeTab === 'home' && <MobileHero />}
         {activeTab === 'artworks' && <MobileArtworks />}
         {activeTab === 'videos' && <MobileVideos />}
+        {activeTab === 'video-edits' && <MobileVideoEdits />}
         {activeTab === 'about' && <MobileAbout />}
       </motion.div>
 

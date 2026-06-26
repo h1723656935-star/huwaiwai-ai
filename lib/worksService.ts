@@ -42,6 +42,24 @@ export interface Video {
   created_at?: string;
 }
 
+export interface VideoEdit {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail: string;
+  videoUrl: string;
+  duration: string;
+  category: string;
+  tags: string[];
+  software: string[];
+  prompt?: string;
+  workflow?: string[];
+  created_at?: string;
+  views?: number;
+  likes?: number;
+  status?: 'draft' | 'published';
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -1204,6 +1222,145 @@ function getDefaultSiteConfig(): SiteConfig {
     aboutDescription: '热爱二次元文化的AI创作者，专注于AI绘画与视频创作领域。通过Midjourney、Stable Diffusion等工具，探索数字艺术的无限可能。相信技术与艺术的结合能够创造出令人惊叹的作品，致力于用AI技术将想象变为现实。',
     aboutTags: 'AI创作,二次元,数字艺术,视频制作',
   };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VideoEdit（视频剪辑作品）CRUD
+// ═══════════════════════════════════════════════════════════
+
+export async function getVideoEdits(): Promise<VideoEdit[]> {
+  try {
+    const { data, error } = await supabase
+      .from('video_edits')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching video_edits:', error);
+      return [];
+    }
+    return ((data || []) as any[]).map(item => ({
+      ...item,
+      tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : (item.tags || []),
+      software: typeof item.software === 'string' ? JSON.parse(item.software) : (item.software || []),
+      workflow: typeof item.workflow === 'string' ? JSON.parse(item.workflow) : (item.workflow || []),
+    }));
+  } catch (error) {
+    console.error('Error fetching video_edits:', error);
+    return [];
+  }
+}
+
+export async function getVideoEditById(id: string): Promise<VideoEdit | null> {
+  try {
+    const { data, error } = await supabase
+      .from('video_edits')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      console.error('Error fetching video_edit:', error);
+      return null;
+    }
+    if (!data) return null;
+    return {
+      ...data,
+      tags: typeof data.tags === 'string' ? JSON.parse(data.tags) : (data.tags || []),
+      software: typeof data.software === 'string' ? JSON.parse(data.software) : (data.software || []),
+      workflow: typeof data.workflow === 'string' ? JSON.parse(data.workflow) : (data.workflow || []),
+    } as VideoEdit;
+  } catch (error) {
+    console.error('Error fetching video_edit:', error);
+    return null;
+  }
+}
+
+export async function createVideoEdit(edit: Omit<VideoEdit, 'id' | 'created_at'>): Promise<VideoEdit | null> {
+  try {
+    let thumbnailUrl = edit.thumbnail || '';
+    if (edit.thumbnail && edit.thumbnail.startsWith('data:')) {
+      const base64Data = edit.thumbnail.split(',')[1];
+      const blob = b64toBlob(base64Data, 'image/jpeg');
+      const fileName = `thumbnails/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
+        thumbnailUrl = urlData.publicUrl;
+      }
+    }
+    const insertData: any = {
+      title: edit.title,
+      description: edit.description || '',
+      thumbnail: thumbnailUrl,
+      videoUrl: edit.videoUrl || '',
+      duration: edit.duration || '',
+      category: edit.category || '',
+      tags: JSON.stringify(edit.tags || []),
+      software: JSON.stringify(edit.software || []),
+      prompt: edit.prompt || '',
+      workflow: JSON.stringify(edit.workflow || []),
+      status: edit.status || 'published',
+      views: edit.views || 0,
+      likes: edit.likes || 0,
+    };
+    const { data, error } = await supabase.from('video_edits').insert([insertData]).select();
+    if (error) throw error;
+    return data?.[0] || null;
+  } catch (error) {
+    console.error('Error creating video_edit:', error);
+    throw error;
+  }
+}
+
+export async function updateVideoEdit(id: string, edit: Partial<VideoEdit>): Promise<VideoEdit | null> {
+  try {
+    const updateData: any = {};
+    if (edit.title !== undefined) updateData.title = edit.title;
+    if (edit.description !== undefined) updateData.description = edit.description;
+    if (edit.thumbnail !== undefined) {
+      if (edit.thumbnail.startsWith('data:')) {
+        const base64Data = edit.thumbnail.split(',')[1];
+        const blob = b64toBlob(base64Data, 'image/jpeg');
+        const fileName = `thumbnails/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+        const { error: uploadError } = await supabase.storage.from('media').upload(fileName, blob, { contentType: 'image/jpeg' });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName);
+          updateData.thumbnail = urlData.publicUrl;
+        }
+      } else {
+        updateData.thumbnail = edit.thumbnail;
+      }
+    }
+    if (edit.videoUrl !== undefined) updateData.videoUrl = edit.videoUrl;
+    if (edit.duration !== undefined) updateData.duration = edit.duration;
+    if (edit.category !== undefined) updateData.category = edit.category;
+    if (edit.tags !== undefined) updateData.tags = JSON.stringify(edit.tags);
+    if (edit.software !== undefined) updateData.software = JSON.stringify(edit.software);
+    if (edit.prompt !== undefined) updateData.prompt = edit.prompt;
+    if (edit.workflow !== undefined) updateData.workflow = JSON.stringify(edit.workflow);
+    if (edit.status !== undefined) updateData.status = edit.status;
+    if (edit.views !== undefined) updateData.views = edit.views;
+    if (edit.likes !== undefined) updateData.likes = edit.likes;
+
+    const { data, error } = await supabase.from('video_edits').update(updateData).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] || null;
+  } catch (error) {
+    console.error('Error updating video_edit:', error);
+    throw error;
+  }
+}
+
+export async function deleteVideoEdit(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('video_edits').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting video_edit:', error);
+    return false;
+  }
 }
 
 function b64toBlob(base64: string, contentType: string): Blob {

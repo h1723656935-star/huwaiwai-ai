@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Artworks from '@/components/Artworks';
 import Videos from '@/components/Videos';
+import VideoEdits from '@/components/VideoEdits';
 import Footer from '@/components/Footer';
 import Intro3D from '@/components/Intro3D';
 import AuroraBackground from '@/components/AuroraBackground';
@@ -137,6 +138,15 @@ function DesktopLayout() {
                 transition={{ duration: 0.9, ease: EASE, delay: 0.55 }}
               >
                 <Videos />
+              </motion.div>
+
+              {/* VideoEdits - 从下方滑入 */}
+              <motion.div
+                initial={{ opacity: 0, y: 30, filter: 'blur(3px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.7 }}
+              >
+                <VideoEdits />
               </motion.div>
             </main>
 
