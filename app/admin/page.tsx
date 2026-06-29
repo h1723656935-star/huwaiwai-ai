@@ -768,7 +768,7 @@ export default function AdminPage() {
       throw new Error(errData.detail || errData.error || '获取临时密钥失败');
     }
     const stsData = await res.json();
-    const { credentials, bucket, region } = stsData;
+    const { credentials, bucket, region, expiredTime, startTime } = stsData;
 
     if (!credentials || !bucket || !region) {
       throw new Error('STS 返回数据不完整: ' + JSON.stringify(stsData));
@@ -783,8 +783,8 @@ export default function AdminPage() {
           TmpSecretId: credentials.tmpSecretId,
           TmpSecretKey: credentials.tmpSecretKey,
           SecurityToken: credentials.sessionToken,
-          ExpiredTime: credentials.expiredTime,
-          StartTime: credentials.startTime || Math.floor(Date.now() / 1000),
+          ExpiredTime: expiredTime,
+          StartTime: startTime || Math.floor(Date.now() / 1000),
         });
       },
     });
