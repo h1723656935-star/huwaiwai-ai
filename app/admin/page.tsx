@@ -43,8 +43,6 @@ interface VideoEditForm {
   category: string;
   tags: string;
   software: string;
-  prompt: string;
-  workflow: string;
   status: 'draft' | 'published';
 }
 
@@ -316,7 +314,7 @@ export default function AdminPage() {
 
   // 视频剪辑状态
   const [videoEditForm, setVideoEditForm] = useState<VideoEditForm>({
-    title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published',
+    title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published',
   });
   const [editingVideoEdit, setEditingVideoEdit] = useState<worksService.VideoEdit | null>(null);
   const [videoEditList, setVideoEditList] = useState<worksService.VideoEdit[]>([]);
@@ -464,10 +462,20 @@ export default function AdminPage() {
     }
   };
 
+  const formatDuration = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   const generateThumbnail = (videoDataUrl: string) => {
     const video = document.createElement('video');
     video.src = videoDataUrl; video.crossOrigin = 'anonymous'; video.muted = true; video.playsInline = true;
-    video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(video.duration / 2, 1);
+      // 自动提取时长
+      setVideoForm(prev => ({ ...prev, duration: formatDuration(video.duration) }));
+    };
     video.onseeked = () => {
       const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
       const ctx = canvas.getContext('2d');
@@ -508,13 +516,17 @@ export default function AdminPage() {
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
 
-  // 从 File 对象生成缩略图
+  // 从 File 对象生成缩略图并提取时长
   const generateThumbnailFromFile = (file: File) => {
-    return new Promise<string | null>((resolve) => {
+    return new Promise<{ thumbnail: string | null; duration: string }>((resolve) => {
       const url = URL.createObjectURL(file);
       const video = document.createElement('video');
       video.src = url; video.muted = true; video.playsInline = true; video.preload = 'metadata';
-      video.onloadedmetadata = () => { video.currentTime = Math.min(video.duration / 2, 1); };
+      let durationStr = '00:00';
+      video.onloadedmetadata = () => {
+        durationStr = formatDuration(video.duration);
+        video.currentTime = Math.min(video.duration / 2, 1);
+      };
       video.onseeked = () => {
         try {
           const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 340;
@@ -522,12 +534,12 @@ export default function AdminPage() {
           if (ctx) {
             ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
-          } else { resolve(null); }
-        } catch { resolve(null); }
+            resolve({ thumbnail: canvas.toDataURL('image/jpeg', 0.8), duration: durationStr });
+          } else { resolve({ thumbnail: null, duration: durationStr }); }
+        } catch { resolve({ thumbnail: null, duration: durationStr }); }
         URL.revokeObjectURL(url);
       };
-      video.onerror = () => { resolve(null); URL.revokeObjectURL(url); };
+      video.onerror = () => { resolve({ thumbnail: null, duration: durationStr }); URL.revokeObjectURL(url); };
     });
   };
 
@@ -539,11 +551,14 @@ export default function AdminPage() {
     setVideoEditFile(file);
     const previewUrl = URL.createObjectURL(file);
     setVideoEditPreview(previewUrl);
-    // 自动生成缩略图
-    const thumb = await generateThumbnailFromFile(file);
+    // 自动生成缩略图和提取时长
+    const result = await generateThumbnailFromFile(file);
+    const thumb = result.thumbnail;
     if (thumb) {
       setVideoEditThumbnailPreview(thumb);
-      setVideoEditForm(prev => ({ ...prev, thumbnail: thumb }));
+      setVideoEditForm(prev => ({ ...prev, thumbnail: thumb, duration: result.duration }));
+    } else {
+      setVideoEditForm(prev => ({ ...prev, duration: result.duration }));
     }
   };
 
@@ -716,7 +731,7 @@ export default function AdminPage() {
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
-    setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+    setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
     setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
   };
 
@@ -826,8 +841,6 @@ export default function AdminPage() {
         category: videoEditForm.category,
         tags: videoEditForm.tags.split(',').map(t => t.trim()).filter(Boolean),
         software: videoEditForm.software.split(',').map(t => t.trim()).filter(Boolean),
-        prompt: videoEditForm.prompt,
-        workflow: videoEditForm.workflow.split('\n').map(t => t.trim()).filter(Boolean),
         status: videoEditForm.status,
       };
       if (editingVideoEdit) {
@@ -835,7 +848,7 @@ export default function AdminPage() {
       } else {
         await worksService.createVideoEdit(data);
       }
-      setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+      setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
       setEditingVideoEdit(null); setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
       setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0);
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
@@ -859,8 +872,6 @@ export default function AdminPage() {
       category: edit.category || 'MV剪辑',
       tags: (edit.tags || []).join(', '),
       software: (edit.software || []).join(', '),
-      prompt: edit.prompt || '',
-      workflow: (edit.workflow || []).join('\n'),
       status: edit.status || 'published',
     });
     setVideoEditThumbnailPreview(edit.thumbnail || null);
@@ -876,7 +887,7 @@ export default function AdminPage() {
       setVideoEditList(prev => prev.filter(e => e.id !== id));
       if (editingVideoEdit?.id === id) {
         setEditingVideoEdit(null);
-        setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', prompt: '', workflow: '', status: 'published' });
+        setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
         setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
       }
       alert('删除成功！');
@@ -1265,8 +1276,8 @@ export default function AdminPage() {
                           </ThemedSelect>
                         </div>
                         <div>
-                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长</label>
-                          <ThemedInput type="text" value={videoEditForm.duration} onChange={(e) => setVideoEditForm({ ...videoEditForm, duration: e.target.value })} placeholder="如：03:24" />
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长（自动提取）</label>
+                          <ThemedInput type="text" value={videoEditForm.duration} readOnly placeholder="上传视频后自动填写" className="opacity-60" />
                         </div>
                       </div>
                       <div>
@@ -1276,14 +1287,6 @@ export default function AdminPage() {
                       <div>
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>软件</label>
                         <ThemedInput type="text" value={videoEditForm.software} onChange={(e) => setVideoEditForm({ ...videoEditForm, software: e.target.value })} placeholder="逗号分隔，如 Premiere Pro, After Effects" />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>Prompt</label>
-                        <ThemedTextarea value={videoEditForm.prompt} onChange={(e) => setVideoEditForm({ ...videoEditForm, prompt: e.target.value })} placeholder="输入 Prompt..." rows={3} />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>Workflow</label>
-                        <ThemedTextarea value={videoEditForm.workflow} onChange={(e) => setVideoEditForm({ ...videoEditForm, workflow: e.target.value })} placeholder="每行一个步骤" rows={4} />
                       </div>
                       <div>
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频文件</label>
@@ -1393,8 +1396,8 @@ export default function AdminPage() {
                           </ThemedSelect>
                         </div>
                         <div>
-                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长</label>
-                          <ThemedInput type="text" value={videoForm.duration} onChange={(e) => setVideoForm({ ...videoForm, duration: e.target.value })} placeholder="如：03:24" />
+                          <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>时长（自动提取）</label>
+                          <ThemedInput type="text" value={videoForm.duration} readOnly placeholder="上传视频后自动填写" className="opacity-60" />
                         </div>
                       </div>
                       <div>
