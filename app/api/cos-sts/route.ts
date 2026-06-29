@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
-function serializeError(error: any): string {
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message + (error.stack ? ' \n' + error.stack.split('\n').slice(0, 3).join(' \n') : '');
-  if (typeof error === 'object' && error !== null) {
-    const keys = Object.keys(error);
-    if (keys.length === 0) return '[empty object]';
-    try {
-      return JSON.stringify(error, null, 2);
-    } catch {
-      return keys.map(k => `${k}: ${typeof error[k] === 'object' ? '[object]' : String(error[k])}`).join(' | ');
-    }
-  }
-  return String(error);
+function sha256(message: string): string {
+  return crypto.createHash('sha256').update(message).digest('hex');
+}
+
+function hmacSha256(key: string, message: string): Buffer {
+  return crypto.createHmac('sha256', key).update(message).digest();
+}
+
+function getSignature(secretKey: string, date: string, service: string, stringToSign: string): string {
+  const dateKey = hmacSha256('TC3' + secretKey, date);
+  const serviceKey = hmacSha256(dateKey.toString(), service);
+  const signingKey = hmacSha256(serviceKey.toString(), 'tc3_request');
+  return crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
 }
 
 export async function GET() {
@@ -29,21 +30,18 @@ export async function GET() {
   }
 
   try {
-    const mod = await import('qcloud-cos-sts');
-    const STS = mod.default || mod;
-
-    const data: any = await new Promise((resolve, reject) => {
-      try {
-        // 使用 allowPrefix + allowActions 简化配置（自动处理 resource）
-        (STS as any).getCredential(
+    const host = 'sts.tencentcloudapi.com';
+    const service = 'sts';
+    const version = '2018-08-13';
+    const action = 'GetFederationToken';
+    const payload = JSON.stringify({
+      Name: 'video-upload',
+      Policy: JSON.stringify({
+        version: '2.0',
+        statement: [
           {
-            secretId,
-            secretKey,
-            durationSeconds: 1800,
-            bucket,
-            region,
-            allowPrefix: '*',
-            allowActions: [
+            effect: 'allow',
+            action: [
               'name/cos:PutObject',
               'name/cos:InitiateMultipartUpload',
               'name/cos:ListParts',
@@ -51,32 +49,76 @@ export async function GET() {
               'name/cos:CompleteMultipartUpload',
               'name/cos:AbortMultipartUpload',
             ],
+            resource: [`qcs::cos:${region}:uid/100050234507:${bucket}/*`],
           },
-          (err: any, data: any) => {
-            if (err) reject({ source: 'getCredential-callback', error: err });
-            else resolve(data);
-          }
-        );
-      } catch (innerErr) {
-        reject({ source: 'getCredential-sync', error: innerErr });
-      }
+        ],
+      }),
+      DurationSeconds: 1800,
     });
 
+    const timestamp = Math.floor(Date.now() / 1000);
+    const date = new Date(timestamp * 1000).toISOString().slice(0, 10);
+    const hashedPayload = sha256(payload);
+
+    const canonicalRequest = [
+      'POST',
+      '/',
+      '',
+      `content-type:application/json\nhost:${host}\n`,
+      'content-type;host',
+      hashedPayload,
+    ].join('\n');
+
+    const credentialScope = `${date}/${service}/tc3_request`;
+    const stringToSign = [
+      'TC3-HMAC-SHA256',
+      timestamp,
+      credentialScope,
+      sha256(canonicalRequest),
+    ].join('\n');
+
+    const signature = getSignature(secretKey, date, service, stringToSign);
+    const authorization = `TC3-HMAC-SHA256 Credential=${secretId}/${credentialScope}, SignedHeaders=content-type;host, Signature=${signature}`;
+
+    const response = await fetch(`https://${host}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Host': host,
+        'X-TC-Action': action,
+        'X-TC-Version': version,
+        'X-TC-Timestamp': String(timestamp),
+        'Authorization': authorization,
+      },
+      body: payload,
+    });
+
+    const data = await response.json();
+
+    if (data.Response?.Error) {
+      throw new Error(JSON.stringify(data.Response.Error));
+    }
+
+    const creds = data.Response?.Credentials;
+    if (!creds) {
+      throw new Error('No credentials returned');
+    }
+
     return NextResponse.json({
-      credentials: data.credentials,
-      expiredTime: data.expiredTime,
-      startTime: data.startTime,
+      credentials: {
+        tmpSecretId: creds.TmpSecretId,
+        tmpSecretKey: creds.TmpSecretKey,
+        sessionToken: creds.Token,
+      },
+      expiredTime: creds.ExpiredTime,
+      startTime: timestamp,
       bucket,
       region,
     });
   } catch (error: any) {
-    const detail = serializeError(error?.error || error);
-    console.error('COS STS error:', detail);
+    console.error('COS STS error:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to generate COS credentials',
-        detail,
-      },
+      { error: 'Failed to generate COS credentials', detail: error?.message || String(error) },
       { status: 500 }
     );
   }
