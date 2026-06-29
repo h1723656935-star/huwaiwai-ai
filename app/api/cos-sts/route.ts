@@ -64,8 +64,8 @@ export async function GET() {
       'POST',
       '/',
       '',
-      `content-type:application/json\nhost:${host}\n`,
-      'content-type;host',
+      `content-type:application/json\nhost:${host}\nx-tc-region:${region}\n`,
+      'content-type;host;x-tc-region',
       hashedPayload,
     ].join('\n');
 
@@ -78,7 +78,7 @@ export async function GET() {
     ].join('\n');
 
     const signature = getSignature(secretKey, date, service, stringToSign);
-    const authorization = `TC3-HMAC-SHA256 Credential=${secretId}/${credentialScope}, SignedHeaders=content-type;host, Signature=${signature}`;
+    const authorization = `TC3-HMAC-SHA256 Credential=${secretId}/${credentialScope}, SignedHeaders=content-type;host;x-tc-region, Signature=${signature}`;
 
     const response = await fetch(`https://${host}/`, {
       method: 'POST',
@@ -88,6 +88,7 @@ export async function GET() {
         'X-TC-Action': action,
         'X-TC-Version': version,
         'X-TC-Timestamp': String(timestamp),
+        'X-TC-Region': region,
         'Authorization': authorization,
       },
       body: payload,

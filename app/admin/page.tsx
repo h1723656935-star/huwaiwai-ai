@@ -761,14 +761,21 @@ export default function AdminPage() {
     } catch (error) { alert('删除失败，请重试'); }
   };
 
-  // 上传视频到腾讯云 COS
   const uploadVideoToCOS = async (file: File): Promise<string> => {
     const res = await fetch('/api/cos-sts');
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.detail || errData.error || '获取临时密钥失败');
     }
-    const { credentials, bucket, region } = await res.json();
+    const stsData = await res.json();
+    const { credentials, bucket, region } = stsData;
+
+    if (!credentials || !bucket || !region) {
+      throw new Error('STS 返回数据不完整: ' + JSON.stringify(stsData));
+    }
+    if (!credentials.tmpSecretId || !credentials.tmpSecretKey) {
+      throw new Error('STS 凭证不完整: ' + JSON.stringify(credentials));
+    }
 
     const cos = new COS({
       getAuthorization: function (options, callback) {
@@ -791,7 +798,7 @@ export default function AdminPage() {
           Bucket: bucket,
           Region: region,
           Key: key,
-          FilePath: file,
+          Body: file,
           onProgress: (progressData: any) => {
             const percent = Math.round((progressData.loaded / progressData.total) * 100);
             setVideoEditUploadProgress(percent);
@@ -799,6 +806,7 @@ export default function AdminPage() {
         },
         (err: any, data: any) => {
           if (err) {
+            console.error('COS upload error:', err);
             reject(err);
           } else {
             const url = `https://${bucket}.cos.${region}.myqcloud.com/${key}`;
@@ -821,7 +829,11 @@ export default function AdminPage() {
         try {
           videoFileUrl = await uploadVideoToCOS(videoEditFile);
         } catch (err: any) {
-          let msg = err?.message || err?.error || err?.Error?.Message;
+          console.error('Upload error detail:', err);
+          let msg = err?.message || err?.error || err?.Error?.Message || err?.Message;
+          if (!msg && err?.error?.Message) {
+            msg = err.error.Message;
+          }
           if (!msg && typeof err === 'object') {
             try { msg = JSON.stringify(err, null, 2); } catch { msg = String(err); }
           }
