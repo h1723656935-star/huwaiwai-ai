@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
+import COS from 'cos-js-sdk-v5';
 import * as worksService from '@/lib/worksService';
 import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from '@/lib/worksService';
 import type { Artwork, Video, Skill, TimelineItem, Stat, SocialLink, SiteConfig } from '@/lib/worksService';
@@ -745,22 +746,64 @@ export default function AdminPage() {
     } catch (error) { alert('删除失败，请重试'); }
   };
 
+  // 上传视频到腾讯云 COS
+  const uploadVideoToCOS = async (file: File): Promise<string> => {
+    const res = await fetch('/api/cos-sts');
+    if (!res.ok) throw new Error('获取临时密钥失败');
+    const { credentials, bucket, region } = await res.json();
+
+    const cos = new COS({
+      getAuthorization: function (options, callback) {
+        callback({
+          TmpSecretId: credentials.tmpSecretId,
+          TmpSecretKey: credentials.tmpSecretKey,
+          SecurityToken: credentials.sessionToken,
+          ExpiredTime: credentials.expiredTime,
+          StartTime: credentials.startTime || Math.floor(Date.now() / 1000),
+        });
+      },
+    });
+
+    const ext = file.name.split('.').pop() || 'mp4';
+    const key = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+
+    return new Promise((resolve, reject) => {
+      (cos as any).sliceUploadFile(
+        {
+          Bucket: bucket,
+          Region: region,
+          Key: key,
+          FilePath: file,
+          onProgress: (progressData: any) => {
+            const percent = Math.round((progressData.loaded / progressData.total) * 100);
+            setVideoEditUploadProgress(percent);
+          },
+        },
+        (err: any, data: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            const url = `https://${bucket}.cos.${region}.myqcloud.com/${key}`;
+            resolve(url);
+          }
+        }
+      );
+    });
+  };
+
   // 视频剪辑 CRUD
   const handleSubmitVideoEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 如果有本地视频文件，先直传到 Supabase Storage
+      // 如果有本地视频文件，先上传到腾讯云 COS
       let videoFileUrl = videoEditForm.videoFile || '';
       if (videoEditFile) {
         setVideoEditUploading(true);
-        setVideoEditUploadProgress(10);
-        const ext = videoEditFile.name.split('.').pop() || 'mp4';
-        const fileName = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        setVideoEditUploadProgress(0);
         try {
-          videoFileUrl = await worksService.uploadToStorage('media', fileName, videoEditFile);
-          setVideoEditUploadProgress(90);
-        } catch (err) {
-          alert('视频上传失败，请重试：' + (err instanceof Error ? err.message : String(err)));
+          videoFileUrl = await uploadVideoToCOS(videoEditFile);
+        } catch (err: any) {
+          alert('视频上传失败：' + (err.message || String(err)));
           setVideoEditUploading(false);
           return;
         }
