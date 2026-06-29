@@ -9,34 +9,33 @@ export async function GET() {
 
   if (!secretId || !secretKey || !bucket || !region) {
     return NextResponse.json(
-      { error: 'COS credentials not configured' },
+      { error: 'COS credentials not configured', missing: { secretId: !secretId, secretKey: !secretKey, bucket: !bucket, region: !region } },
       { status: 500 }
     );
   }
 
   try {
-    const data = await STS.getCredential({
-      secretId,
-      secretKey,
-      durationSeconds: 1800,
-      policy: {
-        version: '2.0',
-        statement: [
-          {
-            action: [
-              'name/cos:PutObject',
-              'name/cos:InitiateMultipartUpload',
-              'name/cos:ListParts',
-              'name/cos:UploadPart',
-              'name/cos:CompleteMultipartUpload',
-              'name/cos:AbortMultipartUpload',
-            ],
-            effect: 'allow',
-            principal: { qcs: ['*'] },
-            resource: [`qcs::cos:${region}:uid/1250000000:${bucket}/*`],
-          },
+    // 使用简化配置（自动处理 resource，无需 APPID）
+    const data: any = await new Promise((resolve, reject) => {
+      (STS as any).getCredential({
+        secretId,
+        secretKey,
+        durationSeconds: 1800,
+        bucket,
+        region,
+        allowPrefix: '*',
+        allowActions: [
+          'name/cos:PutObject',
+          'name/cos:InitiateMultipartUpload',
+          'name/cos:ListParts',
+          'name/cos:UploadPart',
+          'name/cos:CompleteMultipartUpload',
+          'name/cos:AbortMultipartUpload',
         ],
-      },
+      }, (err: any, data: any) => {
+        if (err) reject(err);
+        else resolve(data);
+      });
     });
 
     return NextResponse.json({
@@ -46,10 +45,10 @@ export async function GET() {
       bucket,
       region,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('COS STS error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate COS credentials' },
+      { error: 'Failed to generate COS credentials', detail: error?.message || String(error) },
       { status: 500 }
     );
   }

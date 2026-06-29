@@ -749,7 +749,10 @@ export default function AdminPage() {
   // 上传视频到腾讯云 COS
   const uploadVideoToCOS = async (file: File): Promise<string> => {
     const res = await fetch('/api/cos-sts');
-    if (!res.ok) throw new Error('获取临时密钥失败');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || errData.error || '获取临时密钥失败');
+    }
     const { credentials, bucket, region } = await res.json();
 
     const cos = new COS({
