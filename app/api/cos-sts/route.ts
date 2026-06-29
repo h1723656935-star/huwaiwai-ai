@@ -32,36 +32,25 @@ export async function GET() {
     const mod = await import('qcloud-cos-sts');
     const STS = mod.default || mod;
 
-    // 检查 STS 模块的可用方法
-    const methods = Object.keys(STS).filter(k => typeof (STS as any)[k] === 'function');
-
     const data: any = await new Promise((resolve, reject) => {
       try {
-        const policy = {
-          version: '2.0',
-          statement: [
-            {
-              action: [
-                'name/cos:PutObject',
-                'name/cos:InitiateMultipartUpload',
-                'name/cos:ListParts',
-                'name/cos:UploadPart',
-                'name/cos:CompleteMultipartUpload',
-                'name/cos:AbortMultipartUpload',
-              ],
-              effect: 'allow',
-              principal: { qcs: ['*'] },
-              resource: [`qcs::cos:${region}:uid/100050234507:${bucket}/*`],
-            },
-          ],
-        };
-
+        // 使用 allowPrefix + allowActions 简化配置（自动处理 resource）
         (STS as any).getCredential(
           {
             secretId,
             secretKey,
             durationSeconds: 1800,
-            policy,
+            bucket,
+            region,
+            allowPrefix: '*',
+            allowActions: [
+              'name/cos:PutObject',
+              'name/cos:InitiateMultipartUpload',
+              'name/cos:ListParts',
+              'name/cos:UploadPart',
+              'name/cos:CompleteMultipartUpload',
+              'name/cos:AbortMultipartUpload',
+            ],
           },
           (err: any, data: any) => {
             if (err) reject({ source: 'getCredential-callback', error: err });
@@ -87,7 +76,6 @@ export async function GET() {
       {
         error: 'Failed to generate COS credentials',
         detail,
-        moduleMethods: error?.moduleMethods || undefined,
       },
       { status: 500 }
     );

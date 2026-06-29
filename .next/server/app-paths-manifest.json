@@ -2,7 +2,7 @@
   "/api/cos-sts/route": "app/api/cos-sts/route.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/api/artworks/route": "app/api/artworks/route.js",
-  "/page": "app/page.js",
+  "/artwork/[id]/page": "app/artwork/[id]/page.js",
   "/admin/page": "app/admin/page.js",
-  "/artwork/[id]/page": "app/artwork/[id]/page.js"
+  "/page": "app/page.js"
 }
