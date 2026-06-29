@@ -51,7 +51,7 @@ export async function GET() {
               ],
               effect: 'allow',
               principal: { qcs: ['*'] },
-              resource: [`qcs::cos:${region}:uid/1250000000:${bucket}/*`],
+              resource: [`qcs::cos:${region}:uid/100050234507:${bucket}/*`],
             },
           ],
         };
