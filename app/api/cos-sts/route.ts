@@ -1,20 +1,6 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 
-function sha256(message: string): string {
-  return crypto.createHash('sha256').update(message).digest('hex');
-}
-
-function hmacSha256(key: Buffer | string, message: string): Buffer {
-  return crypto.createHmac('sha256', key as any).update(message).digest();
-}
-
-function getSignature(secretKey: string, date: string, service: string, stringToSign: string): string {
-  const dateKey = hmacSha256(Buffer.from('TC3' + secretKey), date);
-  const serviceKey = hmacSha256(dateKey, service);
-  const signingKey = hmacSha256(serviceKey, 'tc3_request');
-  return crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
-}
+export const runtime = 'nodejs';
 
 export async function GET() {
   const secretId = process.env.COS_SECRET_ID;
@@ -30,92 +16,49 @@ export async function GET() {
   }
 
   try {
-    const host = 'sts.tencentcloudapi.com';
-    const service = 'sts';
-    const version = '2018-08-13';
-    const action = 'GetFederationToken';
-    const payload = JSON.stringify({
-      Name: 'video-upload',
-      Policy: JSON.stringify({
-        version: '2.0',
-        statement: [
-          {
-            effect: 'allow',
-            action: [
-              'name/cos:PutObject',
-              'name/cos:InitiateMultipartUpload',
-              'name/cos:ListParts',
-              'name/cos:UploadPart',
-              'name/cos:CompleteMultipartUpload',
-              'name/cos:AbortMultipartUpload',
-            ],
-            resource: [`qcs::cos:${region}:uid/100050234507:${bucket}/*`],
-          },
-        ],
-      }),
-      DurationSeconds: 1800,
-    });
+    const sts = await import('qcloud-cos-sts');
 
-    const timestamp = Math.floor(Date.now() / 1000);
-    const date = new Date(timestamp * 1000).toISOString().slice(0, 10);
-    const hashedPayload = sha256(payload);
+    const policy = {
+      version: '2.0',
+      statement: [
+        {
+          effect: 'allow',
+          action: [
+            'name/cos:PutObject',
+            'name/cos:InitiateMultipartUpload',
+            'name/cos:ListParts',
+            'name/cos:UploadPart',
+            'name/cos:CompleteMultipartUpload',
+            'name/cos:AbortMultipartUpload',
+          ],
+          resource: [`qcs::cos:${region}:uid/*:${bucket}/*`],
+        },
+      ],
+    };
 
-    const canonicalRequest = [
-      'POST',
-      '/',
-      '',
-      `content-type:application/json\nhost:${host}\nx-tc-region:${region}\n`,
-      'content-type;host;x-tc-region',
-      hashedPayload,
-    ].join('\n');
-
-    const credentialScope = `${date}/${service}/tc3_request`;
-    const stringToSign = [
-      'TC3-HMAC-SHA256',
-      timestamp,
-      credentialScope,
-      sha256(canonicalRequest),
-    ].join('\n');
-
-    const signature = getSignature(secretKey, date, service, stringToSign);
-    const authorization = `TC3-HMAC-SHA256 Credential=${secretId}/${credentialScope}, SignedHeaders=content-type;host;x-tc-region, Signature=${signature}`;
-
-    const response = await fetch(`https://${host}/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Host': host,
-        'X-TC-Action': action,
-        'X-TC-Version': version,
-        'X-TC-Timestamp': String(timestamp),
-        'X-TC-Region': region,
-        'Authorization': authorization,
-      },
-      body: payload,
-    });
-
-    const data = await response.json();
-
-    if (data.Response?.Error) {
-      throw new Error(JSON.stringify(data.Response.Error));
-    }
-
-    const creds = data.Response?.Credentials;
-    if (!creds) {
-      throw new Error('No credentials returned');
-    }
-
-    return NextResponse.json({
-      credentials: {
-        tmpSecretId: creds.TmpSecretId,
-        tmpSecretKey: creds.TmpSecretKey,
-        sessionToken: creds.Token,
-      },
-      expiredTime: creds.ExpiredTime,
-      startTime: timestamp,
-      bucket,
+    const result = await sts.getCredential({
+      secretId,
+      secretKey,
       region,
+      policy,
+      durationSeconds: 1800,
     });
+
+    if (result && result.credentials) {
+      return NextResponse.json({
+        credentials: {
+          tmpSecretId: result.credentials.tmpSecretId,
+          tmpSecretKey: result.credentials.tmpSecretKey,
+          sessionToken: result.credentials.sessionToken,
+        },
+        expiredTime: result.expiredTime,
+        startTime: result.startTime,
+        bucket,
+        region,
+      });
+    } else {
+      throw new Error('No credentials returned from STS');
+    }
   } catch (error: any) {
     console.error('COS STS error:', error);
     return NextResponse.json(
