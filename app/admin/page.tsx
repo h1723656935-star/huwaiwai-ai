@@ -830,12 +830,35 @@ export default function AdminPage() {
           videoFileUrl = await uploadVideoToCOS(videoEditFile);
         } catch (err: any) {
           console.error('Upload error detail:', err);
-          let msg = err?.message || err?.error || err?.Error?.Message || err?.Message;
-          if (!msg && err?.error?.Message) {
-            msg = err.error.Message;
+          let msg = '';
+          if (typeof err === 'string') {
+            msg = err;
+          } else if (err?.message) {
+            msg = err.message;
+          } else if (err?.error) {
+            if (typeof err.error === 'string') msg = err.error;
+            else if (err.error.Message) msg = err.error.Message;
+            else if (err.error.message) msg = err.error.message;
+          } else if (err?.Error?.Message) {
+            msg = err.Error.Message;
+          } else if (err?.Message) {
+            msg = err.Message;
+          } else if (err?.detail) {
+            msg = err.detail;
           }
-          if (!msg && typeof err === 'object') {
-            try { msg = JSON.stringify(err, null, 2); } catch { msg = String(err); }
+          if (!msg) {
+            try {
+              const seen = new WeakSet();
+              msg = JSON.stringify(err, (key, value) => {
+                if (typeof value === 'object' && value !== null) {
+                  if (seen.has(value)) return '[Circular]';
+                  seen.add(value);
+                }
+                return value;
+              }, 2);
+            } catch {
+              msg = String(err);
+            }
           }
           alert('视频上传失败：' + (msg || '未知错误'));
           setVideoEditUploading(false);
