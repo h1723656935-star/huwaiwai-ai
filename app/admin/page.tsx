@@ -806,7 +806,11 @@ export default function AdminPage() {
         try {
           videoFileUrl = await uploadVideoToCOS(videoEditFile);
         } catch (err: any) {
-          alert('视频上传失败：' + (err.message || String(err)));
+          let msg = err?.message;
+          if (!msg && typeof err === 'object') {
+            try { msg = JSON.stringify(err); } catch { msg = String(err); }
+          }
+          alert('视频上传失败：' + (msg || '未知错误'));
           setVideoEditUploading(false);
           return;
         }

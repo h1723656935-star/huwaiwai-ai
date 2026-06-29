@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import STS from 'qcloud-cos-sts';
 
 export async function GET() {
   const secretId = process.env.COS_SECRET_ID;
@@ -15,27 +14,46 @@ export async function GET() {
   }
 
   try {
-    // 使用简化配置（自动处理 resource，无需 APPID）
+    // 动态导入 qcloud-cos-sts，避免构建时类型问题
+    const STS = await import('qcloud-cos-sts').then(m => m.default || m);
+
     const data: any = await new Promise((resolve, reject) => {
-      (STS as any).getCredential({
-        secretId,
-        secretKey,
-        durationSeconds: 1800,
-        bucket,
-        region,
-        allowPrefix: '*',
-        allowActions: [
-          'name/cos:PutObject',
-          'name/cos:InitiateMultipartUpload',
-          'name/cos:ListParts',
-          'name/cos:UploadPart',
-          'name/cos:CompleteMultipartUpload',
-          'name/cos:AbortMultipartUpload',
-        ],
-      }, (err: any, data: any) => {
-        if (err) reject(err);
-        else resolve(data);
-      });
+      try {
+        // 构造 policy（不需要 APPID）
+        const policy = {
+          version: '2.0',
+          statement: [
+            {
+              action: [
+                'name/cos:PutObject',
+                'name/cos:InitiateMultipartUpload',
+                'name/cos:ListParts',
+                'name/cos:UploadPart',
+                'name/cos:CompleteMultipartUpload',
+                'name/cos:AbortMultipartUpload',
+              ],
+              effect: 'allow',
+              principal: { qcs: ['*'] },
+              resource: [`qcs::cos:${region}:uid/1250000000:${bucket}/*`],
+            },
+          ],
+        };
+
+        (STS as any).getCredential(
+          {
+            secretId,
+            secretKey,
+            durationSeconds: 1800,
+            policy,
+          },
+          (err: any, data: any) => {
+            if (err) reject(err);
+            else resolve(data);
+          }
+        );
+      } catch (innerErr) {
+        reject(innerErr);
+      }
     });
 
     return NextResponse.json({
@@ -48,7 +66,11 @@ export async function GET() {
   } catch (error: any) {
     console.error('COS STS error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate COS credentials', detail: error?.message || String(error) },
+      {
+        error: 'Failed to generate COS credentials',
+        detail: error?.message || String(error),
+        stack: error?.stack?.split('\n').slice(0, 3).join(' \n') || '',
+      },
       { status: 500 }
     );
   }
