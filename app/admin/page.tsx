@@ -821,9 +821,9 @@ export default function AdminPage() {
         try {
           videoFileUrl = await uploadVideoToCOS(videoEditFile);
         } catch (err: any) {
-          let msg = err?.message;
+          let msg = err?.message || err?.error || err?.Error?.Message;
           if (!msg && typeof err === 'object') {
-            try { msg = JSON.stringify(err); } catch { msg = String(err); }
+            try { msg = JSON.stringify(err, null, 2); } catch { msg = String(err); }
           }
           alert('视频上传失败：' + (msg || '未知错误'));
           setVideoEditUploading(false);
