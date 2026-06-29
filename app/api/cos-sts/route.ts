@@ -18,6 +18,9 @@ export async function GET() {
   try {
     const sts = await import('qcloud-cos-sts');
 
+    const shortBucketName = bucket.substring(0, bucket.lastIndexOf('-'));
+    const appId = bucket.substring(bucket.lastIndexOf('-') + 1);
+
     const policy = {
       version: '2.0',
       statement: [
@@ -25,13 +28,18 @@ export async function GET() {
           effect: 'allow',
           action: [
             'name/cos:PutObject',
+            'name/cos:PostObject',
             'name/cos:InitiateMultipartUpload',
+            'name/cos:ListMultipartUploads',
             'name/cos:ListParts',
             'name/cos:UploadPart',
             'name/cos:CompleteMultipartUpload',
             'name/cos:AbortMultipartUpload',
           ],
-          resource: [`qcs::cos:${region}:uid/*:${bucket}/*`],
+          principal: { qcs: ['*'] },
+          resource: [
+            `qcs::cos:${region}:uid/${appId}:prefix//${appId}/${shortBucketName}/*`,
+          ],
         },
       ],
     };
@@ -61,8 +69,25 @@ export async function GET() {
     }
   } catch (error: any) {
     console.error('COS STS error:', error);
+    let detail = '';
+    if (typeof error === 'string') {
+      detail = error;
+    } else if (error?.message) {
+      detail = error.message;
+    } else if (error?.Error?.Message) {
+      detail = error.Error.Message;
+    } else if (error?.Message) {
+      detail = error.Message;
+    }
+    if (!detail) {
+      try {
+        detail = JSON.stringify(error);
+      } catch {
+        detail = String(error);
+      }
+    }
     return NextResponse.json(
-      { error: 'Failed to generate COS credentials', detail: error?.message || String(error) },
+      { error: 'Failed to generate COS credentials', detail, rawError: error },
       { status: 500 }
     );
   }
