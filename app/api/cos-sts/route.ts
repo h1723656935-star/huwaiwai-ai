@@ -5,14 +5,14 @@ function sha256(message: string): string {
   return crypto.createHash('sha256').update(message).digest('hex');
 }
 
-function hmacSha256(key: string, message: string): Buffer {
-  return crypto.createHmac('sha256', key).update(message).digest();
+function hmacSha256(key: Buffer | string, message: string): Buffer {
+  return crypto.createHmac('sha256', key as any).update(message).digest();
 }
 
 function getSignature(secretKey: string, date: string, service: string, stringToSign: string): string {
-  const dateKey = hmacSha256('TC3' + secretKey, date);
-  const serviceKey = hmacSha256(dateKey.toString(), service);
-  const signingKey = hmacSha256(serviceKey.toString(), 'tc3_request');
+  const dateKey = hmacSha256(Buffer.from('TC3' + secretKey), date);
+  const serviceKey = hmacSha256(dateKey, service);
+  const signingKey = hmacSha256(serviceKey, 'tc3_request');
   return crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
 }
 
