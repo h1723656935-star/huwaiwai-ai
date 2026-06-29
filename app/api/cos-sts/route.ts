@@ -1,5 +1,20 @@
 import { NextResponse } from 'next/server';
 
+function serializeError(error: any): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message + (error.stack ? ' \n' + error.stack.split('\n').slice(0, 3).join(' \n') : '');
+  if (typeof error === 'object' && error !== null) {
+    const keys = Object.keys(error);
+    if (keys.length === 0) return '[empty object]';
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return keys.map(k => `${k}: ${typeof error[k] === 'object' ? '[object]' : String(error[k])}`).join(' | ');
+    }
+  }
+  return String(error);
+}
+
 export async function GET() {
   const secretId = process.env.COS_SECRET_ID;
   const secretKey = process.env.COS_SECRET_KEY;
@@ -14,12 +29,14 @@ export async function GET() {
   }
 
   try {
-    // 动态导入 qcloud-cos-sts，避免构建时类型问题
-    const STS = await import('qcloud-cos-sts').then(m => m.default || m);
+    const mod = await import('qcloud-cos-sts');
+    const STS = mod.default || mod;
+
+    // 检查 STS 模块的可用方法
+    const methods = Object.keys(STS).filter(k => typeof (STS as any)[k] === 'function');
 
     const data: any = await new Promise((resolve, reject) => {
       try {
-        // 构造 policy（不需要 APPID）
         const policy = {
           version: '2.0',
           statement: [
@@ -47,12 +64,12 @@ export async function GET() {
             policy,
           },
           (err: any, data: any) => {
-            if (err) reject(err);
+            if (err) reject({ source: 'getCredential-callback', error: err });
             else resolve(data);
           }
         );
       } catch (innerErr) {
-        reject(innerErr);
+        reject({ source: 'getCredential-sync', error: innerErr });
       }
     });
 
@@ -64,12 +81,13 @@ export async function GET() {
       region,
     });
   } catch (error: any) {
-    console.error('COS STS error:', error);
+    const detail = serializeError(error?.error || error);
+    console.error('COS STS error:', detail);
     return NextResponse.json(
       {
         error: 'Failed to generate COS credentials',
-        detail: error?.message || String(error),
-        stack: error?.stack?.split('\n').slice(0, 3).join(' \n') || '',
+        detail,
+        moduleMethods: error?.moduleMethods || undefined,
       },
       { status: 500 }
     );
