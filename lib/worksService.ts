@@ -1308,24 +1308,50 @@ export async function createVideoEdit(edit: Omit<VideoEdit, 'id' | 'created_at'>
         videoFileUrl = urlData.publicUrl;
       }
     }
-    const insertData: any = {
+    // 核心字段：这些字段是 video_edits 表必须有的
+    const coreInsert: any = {
       title: edit.title,
-      description: edit.description || '',
       thumbnail: thumbnailUrl,
       videoUrl: edit.videoUrl || '',
       videoFile: videoFileUrl,
       duration: edit.duration || '',
       category: edit.category || '',
-      tags: JSON.stringify(edit.tags || []),
-      software: JSON.stringify(edit.software || []),
-      prompt: edit.prompt || '',
-      workflow: JSON.stringify(edit.workflow || []),
-      status: edit.status || 'published',
-      views: edit.views || 0,
-      likes: edit.likes || 0,
     };
-    const { data, error } = await supabase.from('video_edits').insert([insertData]).select();
-    if (error) throw error;
+    // 可选字段：只在有值时传入，避免表结构缺失列导致插入失败
+    if (edit.description) coreInsert.description = edit.description;
+    if (edit.tags && edit.tags.length > 0) coreInsert.tags = JSON.stringify(edit.tags);
+    if (edit.software && edit.software.length > 0) coreInsert.software = JSON.stringify(edit.software);
+    if (edit.status) coreInsert.status = edit.status;
+
+    let data: any = null;
+    let error: any = null;
+    try {
+      const result = await supabase.from('video_edits').insert([coreInsert]).select();
+      data = result.data;
+      error = result.error;
+    } catch (e) {
+      error = e;
+    }
+
+    // 如果失败，尝试只插入最小字段集（兼容最简表结构）
+    if (error) {
+      console.warn('Full video_edit insert failed, trying minimal insert:', error);
+      const minimalInsert = {
+        title: edit.title,
+        thumbnail: thumbnailUrl,
+        videoUrl: edit.videoUrl || '',
+        videoFile: videoFileUrl,
+        duration: edit.duration || '',
+        category: edit.category || '',
+      };
+      const { data: minimalData, error: minimalError } = await supabase.from('video_edits').insert([minimalInsert]).select();
+      if (minimalError) {
+        console.error('Error creating video_edit (minimal):', minimalError);
+        throw minimalError;
+      }
+      data = minimalData;
+    }
+
     return data?.[0] || null;
   } catch (error) {
     console.error('Error creating video_edit:', error);
@@ -1372,13 +1398,9 @@ export async function updateVideoEdit(id: string, edit: Partial<VideoEdit>): Pro
     }
     if (edit.duration !== undefined) updateData.duration = edit.duration;
     if (edit.category !== undefined) updateData.category = edit.category;
-    if (edit.tags !== undefined) updateData.tags = JSON.stringify(edit.tags);
-    if (edit.software !== undefined) updateData.software = JSON.stringify(edit.software);
-    if (edit.prompt !== undefined) updateData.prompt = edit.prompt;
-    if (edit.workflow !== undefined) updateData.workflow = JSON.stringify(edit.workflow);
+    if (edit.tags !== undefined && edit.tags.length > 0) updateData.tags = JSON.stringify(edit.tags);
+    if (edit.software !== undefined && edit.software.length > 0) updateData.software = JSON.stringify(edit.software);
     if (edit.status !== undefined) updateData.status = edit.status;
-    if (edit.views !== undefined) updateData.views = edit.views;
-    if (edit.likes !== undefined) updateData.likes = edit.likes;
 
     const { data, error } = await supabase.from('video_edits').update(updateData).eq('id', id).select();
     if (error) throw error;

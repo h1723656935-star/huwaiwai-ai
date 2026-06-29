@@ -889,9 +889,27 @@ export default function AdminPage() {
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       loadAllData();
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Submit video edit error:', error);
+      let msg = '';
+      if (typeof error === 'string') {
+        msg = error;
+      } else if (error?.message) {
+        msg = error.message;
+      } else if (error?.error?.message) {
+        msg = error.error.message;
+      } else if (error?.details) {
+        msg = error.details;
+      }
+      if (!msg) {
+        try {
+          msg = JSON.stringify(error, null, 2);
+        } catch {
+          msg = String(error);
+        }
+      }
       setVideoEditUploading(false);
-      alert('操作失败，请重试');
+      alert('保存失败：' + (msg || '请重试'));
     }
   };
 
