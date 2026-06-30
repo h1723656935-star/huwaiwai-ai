@@ -35,6 +35,7 @@ export async function GET() {
             'name/cos:UploadPart',
             'name/cos:CompleteMultipartUpload',
             'name/cos:AbortMultipartUpload',
+            'name/cos:PutObjectAcl',
           ],
           principal: { qcs: ['*'] },
           resource: [

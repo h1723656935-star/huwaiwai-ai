@@ -799,6 +799,12 @@ export default function AdminPage() {
           Region: region,
           Key: key,
           Body: file,
+          ACL: 'public-read',
+          Headers: {
+            'x-cos-acl': 'public-read',
+          },
+          SliceSize: 5 * 1024 * 1024,
+          AsyncLimit: 5,
           onProgress: (progressData: any) => {
             const percent = Math.round((progressData.loaded / progressData.total) * 100);
             setVideoEditUploadProgress(percent);
@@ -809,7 +815,9 @@ export default function AdminPage() {
             console.error('COS upload error:', err);
             reject(err);
           } else {
-            const url = `https://${bucket}.cos.${region}.myqcloud.com/${key}`;
+            console.log('COS upload success:', data);
+            const url = data?.Location ? `https://${data.Location}` : `https://${bucket}.cos.${region}.myqcloud.com/${key}`;
+            console.log('Video URL:', url);
             resolve(url);
           }
         }

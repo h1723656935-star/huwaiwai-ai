@@ -16,8 +16,6 @@ import {
   Scissors,
   Clapperboard,
   Star,
-  TrendingUp,
-  ArrowRight,
 } from "lucide-react";
 import * as worksService from "@/lib/worksService";
 import type { VideoEdit } from "@/lib/worksService";
@@ -63,8 +61,6 @@ function VideoEditDetailPC({
   onClose: () => void;
   allEdits: VideoEdit[];
 }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "prompt" | "workflow">("overview");
-  const [promptExpanded, setPromptExpanded] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
 
   const related = useMemo(() => {
@@ -131,7 +127,24 @@ function VideoEditDetailPC({
                   </div>
                 </>
               ) : (
-                <video src={edit.videoFile || edit.videoUrl} controls autoPlay className="w-full h-full" poster={edit.thumbnail} />
+                <video
+                  src={edit.videoFile || edit.videoUrl || ''}
+                  controls
+                  autoPlay
+                  preload="auto"
+                  playsInline
+                  className="w-full h-full"
+                  poster={edit.thumbnail}
+                  onError={(e) => {
+                    const video = e.target as HTMLVideoElement;
+                    console.error('Video playback error:', {
+                      src: video.src,
+                      error: video.error,
+                      networkState: video.networkState,
+                      readyState: video.readyState,
+                    });
+                  }}
+                />
               )}
             </div>
           </div>
@@ -197,85 +210,18 @@ function VideoEditDetailPC({
               </div>
             )}
 
-            {/* Tab 导航 */}
-            <div className="flex gap-1 p-1 rounded-xl mb-4" style={{ background: "rgba(255,255,255,0.03)" }}>
-              {(["overview", "prompt", "workflow"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className="flex-1 py-2 text-xs font-medium rounded-lg transition-all"
-                  style={{
-                    background: activeTab === tab ? "rgba(120,101,248,0.15)" : "transparent",
-                    color: activeTab === tab ? "#C4B5FD" : "rgba(255,255,255,0.3)",
-                  }}
-                >
-                  {tab === "overview" ? "概览" : tab === "prompt" ? "Prompt" : "Workflow"}
-                </button>
-              ))}
-            </div>
 
-            {/* Tab 内容 */}
-            <div className="flex-1 min-h-[120px]">
-              <AnimatePresence mode="wait">
-                {activeTab === "overview" && (
-                  <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {edit.tags && edit.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {edit.tags.map((tag) => (
-                          <span key={tag} className="text-[11px] px-2 py-1 rounded-md" style={{ background: "rgba(120,101,248,0.08)", color: "#A78BD9" }}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-                {activeTab === "prompt" && (
-                  <motion.div key="prompt" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {edit.prompt ? (
-                      <div>
-                        <div className="text-sm leading-relaxed rounded-xl p-4" style={{ background: "rgba(120,101,248,0.04)", border: "1px solid rgba(120,101,248,0.08)", color: "rgba(196,181,253,0.85)" }}>
-                          <p className={promptExpanded ? "" : "line-clamp-4"}>{edit.prompt}</p>
-                        </div>
-                        {edit.prompt.length > 120 && (
-                          <button onClick={() => setPromptExpanded(!promptExpanded)} className="mt-2 text-xs flex items-center gap-1" style={{ color: "#7865F8" }}>
-                            {promptExpanded ? "收起" : "展开更多"}
-                            <ChevronRight size={12} className={`transition-transform ${promptExpanded ? "rotate-90" : ""}`} />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-white/20 text-center py-8">暂无 Prompt 信息</p>
-                    )}
-                  </motion.div>
-                )}
-                {activeTab === "workflow" && (
-                  <motion.div key="workflow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    {edit.workflow && edit.workflow.length > 0 ? (
-                      <div className="space-y-0">
-                        {edit.workflow.map((step, i) => (
-                          <div key={i} className="flex gap-3">
-                            <div className="flex flex-col items-center">
-                              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "rgba(120,101,248,0.15)", border: "1px solid rgba(120,101,248,0.3)", color: "#C4B5FD" }}>
-                                {i + 1}
-                              </div>
-                              {i < edit.workflow!.length - 1 && (
-                                <div className="w-px flex-1 mt-1" style={{ background: "rgba(120,101,248,0.1)" }} />
-                              )}
-                            </div>
-                            <div className="pb-3 flex-1">
-                              <p className="text-sm text-white/60">{step}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-white/20 text-center py-8">暂无 Workflow 信息</p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+
+            {/* 标签 */}
+            {edit.tags && edit.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {edit.tags.map((tag) => (
+                  <span key={tag} className="text-[11px] px-2 py-1 rounded-md" style={{ background: "rgba(120,101,248,0.08)", color: "#A78BD9" }}>
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* 相关推荐 */}
             {related.length > 0 && (
