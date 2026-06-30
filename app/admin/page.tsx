@@ -323,6 +323,7 @@ export default function AdminPage() {
   const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
   const [videoEditUploading, setVideoEditUploading] = useState(false);
   const [videoEditUploadProgress, setVideoEditUploadProgress] = useState(0);
+  const [videoEditUploadSpeed, setVideoEditUploadSpeed] = useState('');
   const [videoEditDragOver, setVideoEditDragOver] = useState(false);
   const [videoEditFileDragOver, setVideoEditFileDragOver] = useState(false);
   const [videoEditCategory, setVideoEditCategory] = useState('MV剪辑');
@@ -791,6 +792,9 @@ export default function AdminPage() {
 
     const ext = file.name.split('.').pop() || 'mp4';
     const key = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const uploadStartTime = Date.now();
+    let lastLoaded = 0;
+    let lastTime = uploadStartTime;
 
     return new Promise((resolve, reject) => {
       (cos as any).sliceUploadFile(
@@ -803,11 +807,29 @@ export default function AdminPage() {
           Headers: {
             'x-cos-acl': 'public-read',
           },
-          SliceSize: 5 * 1024 * 1024,
-          AsyncLimit: 5,
+          SliceSize: 10 * 1024 * 1024,
+          AsyncLimit: 8,
+          onTaskReady: function (taskId: string) {},
           onProgress: (progressData: any) => {
             const percent = Math.round((progressData.loaded / progressData.total) * 100);
             setVideoEditUploadProgress(percent);
+            const now = Date.now();
+            const elapsed = (now - uploadStartTime) / 1000;
+            if (elapsed > 0.5) {
+              const loadedMB = progressData.loaded / (1024 * 1024);
+              const speedMBps = loadedMB / elapsed;
+              let speedStr = '';
+              if (speedMBps > 1) speedStr = `${speedMBps.toFixed(1)} MB/s`;
+              else speedStr = `${(speedMBps * 1024).toFixed(0)} KB/s`;
+              const remainingMB = (progressData.total - progressData.loaded) / (1024 * 1024);
+              const etaSec = speedMBps > 0 ? remainingMB / speedMBps : 0;
+              let etaStr = '';
+              if (etaSec > 60) etaStr = `${Math.floor(etaSec / 60)}分${Math.round(etaSec % 60)}秒`;
+              else if (etaSec > 0) etaStr = `${Math.round(etaSec)}秒`;
+              setVideoEditUploadSpeed(`${speedStr} · 剩余${etaStr}`);
+            }
+            lastLoaded = progressData.loaded;
+            lastTime = now;
           },
         },
         (err: any, data: any) => {
@@ -834,6 +856,7 @@ export default function AdminPage() {
       if (videoEditFile) {
         setVideoEditUploading(true);
         setVideoEditUploadProgress(0);
+        setVideoEditUploadSpeed('');
         try {
           videoFileUrl = await uploadVideoToCOS(videoEditFile);
         } catch (err: any) {
@@ -870,6 +893,7 @@ export default function AdminPage() {
           }
           alert('视频上传失败：' + (msg || '未知错误'));
           setVideoEditUploading(false);
+          setVideoEditUploadSpeed('');
           return;
         }
       }
@@ -893,7 +917,7 @@ export default function AdminPage() {
       }
       setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
       setEditingVideoEdit(null); setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
-      setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0);
+      setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0); setVideoEditUploadSpeed('');
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       loadAllData();
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
@@ -917,6 +941,7 @@ export default function AdminPage() {
         }
       }
       setVideoEditUploading(false);
+      setVideoEditUploadSpeed('');
       alert('保存失败：' + (msg || '请重试'));
     }
   };
@@ -1353,22 +1378,56 @@ export default function AdminPage() {
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>视频文件</label>
                         {!videoEditPreview ? (
                           <div
-                            className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                            className="w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all relative overflow-hidden"
                             style={{
-                              borderColor: videoEditFileDragOver ? '#7865F8' : 'rgba(120,101,248,0.25)',
+                              borderColor: videoEditFileDragOver ? '#7865F8' : videoEditUploading ? 'rgba(120,101,248,0.5)' : 'rgba(120,101,248,0.25)',
                               background: videoEditFileDragOver ? 'rgba(120, 101, 248, 0.1)' : 'transparent',
                             }}
-                            onClick={() => document.getElementById('video-edit-file-upload')?.click()}
+                            onClick={() => !videoEditUploading && document.getElementById('video-edit-file-upload')?.click()}
                             onDragOver={handleDragOver}
-                            onDragEnter={() => setVideoEditFileDragOver(true)}
+                            onDragEnter={() => !videoEditUploading && setVideoEditFileDragOver(true)}
                             onDragLeave={() => setVideoEditFileDragOver(false)}
-                            onDrop={handleVideoEditDrop}
+                            onDrop={(e) => { if (!videoEditUploading) handleVideoEditDrop(e); }}
                           >
-                            <input id="video-edit-file-upload" type="file" accept="video/*" className="hidden" onChange={handleVideoEditFileUpload} />
-                            <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
-                            <p className="text-sm" style={{ color: videoEditFileDragOver ? '#A991FF' : THEME.text.muted }}>
-                              {videoEditFileDragOver ? '松开以上传' : videoEditUploading ? '上传中...' : videoEditFile ? `已选择: ${videoEditFile.name} (${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB)` : '点击或拖拽上传视频（最大2GB）'}
-                            </p>
+                            <input id="video-edit-file-upload" type="file" accept="video/*" className="hidden" onChange={handleVideoEditFileUpload} disabled={videoEditUploading} />
+                            {videoEditUploading ? (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-center gap-2">
+                                      <Icons.UploadCloud className="w-8 h-8 animate-pulse" style={{ color: '#A991FF' }} />
+                                    </div>
+                                <p className="text-sm" style={{ color: '#A991FF' }}>
+                                  正在上传视频...
+                                </p>
+                                <div className="w-full max-w-xs mx-auto">
+                                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(120,101,248,0.15)' }}>
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${videoEditUploadProgress}%` }}
+                                      transition={{ duration: 0.2, ease: 'linear' }}
+                                      style={{
+                                        background: 'linear-gradient(90deg, #7865F8 0%, #A991FF 50%, #D4AF7A 100%)',
+                                        boxShadow: '0 0 10px rgba(120,101,248,0.5)',
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <span className="text-xs" style={{ color: THEME.text.muted }}>{videoEditFile ? `${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
+                                    <span className="text-xs font-bold" style={{ color: '#A991FF' }}>{videoEditUploadProgress}%</span>
+                                  </div>
+                                  {videoEditUploadSpeed && (
+                                    <p className="text-xs text-center" style={{ color: THEME.text.dim }}>{videoEditUploadSpeed}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
+                                <p className="text-sm" style={{ color: videoEditFileDragOver ? '#A991FF' : THEME.text.muted }}>
+                                  {videoEditFileDragOver ? '松开以上传' : videoEditFile ? `已选择: ${videoEditFile.name} (${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB)` : '点击或拖拽上传视频（最大2GB）'}
+                                </p>
+                              </>
+                            )}
                           </div>
                         ) : (
                           <div className="relative rounded-xl overflow-hidden">
@@ -1377,6 +1436,32 @@ export default function AdminPage() {
                               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,10,24,0.85)', color: '#ECE7FF', border: '1px solid rgba(120,101,248,0.3)' }}>
                               <Icons.X className="w-4 h-4" />
                             </button>
+                            {videoEditUploading && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(5,3,10,0.8)', backdropFilter: 'blur(8px)' }}>
+                                <div className="w-4/5 max-w-xs space-y-3">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Icons.UploadCloud className="w-8 h-8 animate-pulse" style={{ color: '#A991FF' }} />
+                                  </div>
+                                  <p className="text-sm text-center" style={{ color: '#A991FF' }}>正在上传视频...</p>
+                                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(120,101,248,0.15)' }}>
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${videoEditUploadProgress}%` }}
+                                      transition={{ duration: 0.2, ease: 'linear' }}
+                                      style={{
+                                        background: 'linear-gradient(90deg, #7865F8 0%, #A991FF 50%, #D4AF7A 100%)',
+                                        boxShadow: '0 0 10px rgba(120,101,248,0.5)',
+                                      }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-center font-bold" style={{ color: '#A991FF' }}>{videoEditUploadProgress}%</p>
+                                  {videoEditUploadSpeed && (
+                                    <p className="text-xs text-center" style={{ color: THEME.text.dim }}>{videoEditUploadSpeed}</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1876,10 +1961,10 @@ export default function AdminPage() {
                       handleVideoSubmit({ preventDefault: () => {} } as any);
                     }
                   }}
-                  disabled={uploading}
+                  disabled={uploading || videoEditUploading}
                   variant="gradient"
                 >
-                  {uploading || videoEditUploading ? '上传中...' : (editingArtwork || editingVideo || editingVideoEdit ? '保存修改' : (worksTab === 'image' ? '上传图片' : worksTab === 'videoEdit' ? '上传视频剪辑' : '上传视频'))}
+                  {videoEditUploading ? `上传中 ${videoEditUploadProgress}%` : uploading ? '保存中...' : (editingArtwork || editingVideo || editingVideoEdit ? '保存修改' : (worksTab === 'image' ? '上传图片' : worksTab === 'videoEdit' ? '上传视频剪辑' : '上传视频'))}
                 </ThemedButton>
               </div>
             </div>
