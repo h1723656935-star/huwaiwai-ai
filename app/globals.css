@@ -280,22 +280,21 @@
     background-clip: text;
   }
 
-  /* 渐变背景 */
+  /* 渐变背景 - 透明版，让极光动态背景透出 */
   .gradient-bg {
-    background: linear-gradient(180deg, #0C0A14 0%, #141220 50%, #1A1728 100%);
+    background: transparent;
   }
 
   .gradient-bg-purple {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--secondary-light) 100%);
   }
 
-  /* 黑紫渐变背景 - 月光版 */
+  /* 黑紫渐变背景 - 月光版（透明，仅保留光晕装饰） */
   .gradient-bg-dark {
     background:
-      radial-gradient(ellipse at 25% 15%, rgba(139, 122, 224, 0.12) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% 85%, rgba(196, 181, 253, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, rgba(212, 175, 122, 0.03) 0%, transparent 40%),
-      linear-gradient(180deg, #0C0A14 0%, #141220 100%);
+      radial-gradient(ellipse at 25% 15%, rgba(139, 122, 224, 0.06) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 85%, rgba(196, 181, 253, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(212, 175, 122, 0.02) 0%, transparent 40%);
     background-attachment: fixed;
   }
 
