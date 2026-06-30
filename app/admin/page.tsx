@@ -1354,6 +1354,10 @@ export default function AdminPage() {
                         <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>标题 *</label>
                         <ThemedInput type="text" value={videoEditForm.title} onChange={(e) => setVideoEditForm({ ...videoEditForm, title: e.target.value })} placeholder="作品标题" required />
                       </div>
+                      <div>
+                        <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>作品描述</label>
+                        <AutoGrowTextarea value={videoEditForm.description} onChange={(e) => setVideoEditForm({ ...videoEditForm, description: e.target.value })} placeholder="作品描述..." minRows={2} />
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs mb-1.5 block" style={{ color: THEME.text.muted }}>分类</label>
