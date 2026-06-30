@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback, MouseEvent } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
@@ -256,7 +256,7 @@ function AnimatedChar({
 }
 
 // ─── 超大英文标题（逐字展开） ────────────────────────────
-function HeroTitle({ visible }: { visible: boolean }) {
+function HeroTitle({ visible, onEnter, onSkip }: { visible: boolean; onEnter: () => void; onSkip: (e?: React.MouseEvent) => void }) {
   const title = "M O  L I";
   const chars = title.split('');
 
@@ -324,6 +324,7 @@ function HeroTitle({ visible }: { visible: boolean }) {
             transition={{ duration: 1.0, delay: 3.0, ease: EASE_OUT_EXPO }}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
+            onClick={onEnter}
             style={{
               border: '1px solid rgba(139, 122, 224, 0.3)',
               borderRadius: '2px',
@@ -341,7 +342,7 @@ function HeroTitle({ visible }: { visible: boolean }) {
             </span>
             {/* hover 光晕 */}
             <motion.div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
                 background: 'radial-gradient(ellipse at center, rgba(139,122,224,0.08) 0%, transparent 70%)',
                 borderRadius: '2px',
@@ -360,6 +361,7 @@ function HeroTitle({ visible }: { visible: boolean }) {
               fontFamily: 'var(--font-ui)',
             }}
             whileHover={{ color: 'rgba(167, 139, 217, 0.5)' }}
+            onClick={(e) => onSkip(e)}
           >
             skip intro
           </motion.button>
@@ -593,10 +595,11 @@ export default function Intro3D({ onComplete }: { onComplete: () => void }) {
 
           {/* ─── UI 层 ─── */}
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center cursor-pointer"
             style={{ zIndex: 10 }}
+            onClick={handleEnter}
           >
-            <HeroTitle visible={phase >= 2} />
+            <HeroTitle visible={phase >= 2} onEnter={handleEnter} onSkip={(e) => { e?.stopPropagation?.(); handleSkip(); }} />
           </div>
 
           {/* ─── 装饰元素 ─── */}
@@ -605,40 +608,6 @@ export default function Intro3D({ onComplete }: { onComplete: () => void }) {
 
           {/* ─── 进度条 ─── */}
           <LoadingBar progress={loadProgress} />
-
-          {/* ─── 点击区域（CTA 按钮的扩展点击区） ─── */}
-          {phase >= 3 && !exiting && (
-            <div
-              className="absolute inset-0 cursor-pointer"
-              style={{ zIndex: 5 }}
-              onClick={handleEnter}
-            />
-          )}
-
-          {/* ─── skip 按钮需要独立点击区域 ─── */}
-          {phase >= 3 && !exiting && (
-            <div
-              className="fixed bottom-16 left-1/2 -translate-x-1/2 cursor-pointer z-[15]"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSkip();
-              }}
-            >
-              <motion.button
-                className="text-xs tracking-[0.3em] cursor-pointer bg-transparent border-none"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1.0, delay: 3.5, ease: EASE_OUT_EXPO }}
-                style={{
-                  color: 'rgba(167, 139, 217, 0.25)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-                whileHover={{ color: 'rgba(167, 139, 217, 0.5)' }}
-              >
-                skip intro
-              </motion.button>
-            </div>
-          )}
         </motion.div>
       ) : null}
     </AnimatePresence>
