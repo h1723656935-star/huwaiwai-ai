@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import COS from 'cos-js-sdk-v5';
 import * as worksService from '@/lib/worksService';
 import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from '@/lib/worksService';
 import type { Artwork, Video, Skill, TimelineItem, Stat, SocialLink, SiteConfig } from '@/lib/worksService';
@@ -323,7 +322,6 @@ export default function AdminPage() {
   const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
   const [videoEditUploading, setVideoEditUploading] = useState(false);
   const [videoEditUploadProgress, setVideoEditUploadProgress] = useState(0);
-  const [videoEditUploadSpeed, setVideoEditUploadSpeed] = useState('');
   const [videoEditDragOver, setVideoEditDragOver] = useState(false);
   const [videoEditFileDragOver, setVideoEditFileDragOver] = useState(false);
   const [videoEditCategory, setVideoEditCategory] = useState('MV剪辑');
@@ -409,14 +407,17 @@ export default function AdminPage() {
   const handleClearAllWorks = async (type: 'image' | 'video' | 'videoEdit') => {
     const typeLabel = type === 'image' ? '图片' : type === 'videoEdit' ? '视频剪辑' : '视频';
     if (!confirm(`确定要清空所有${typeLabel}作品吗？此操作不可恢复！`)) return;
-    if (!confirm('再次确认：所有作品数据将被永久删除！')) return;
+    if (!confirm(`再次确认：所有${typeLabel}数据将被永久删除！`)) return;
     try {
       if (type === 'image') {
         for (const art of userArtworks) await worksService.deleteArtwork(art.id);
         removeLocalStorageItem('userArtworks'); setUserArtworks([]);
       } else if (type === 'videoEdit') {
-        for (const edit of videoEditList) await worksService.deleteVideoEdit(edit.id);
+        for (const edit of videoEditList) {
+          await worksService.deleteVideoEdit(edit.id);
+        }
         setVideoEditList([]);
+        setVideoEditFile(null);
       } else {
         for (const vid of userVideos) await worksService.deleteVideo(vid.id);
         removeLocalStorageItem('userVideos'); setUserVideos([]);
@@ -547,8 +548,8 @@ export default function AdminPage() {
   // 视频剪辑 - 处理视频文件选择（保存 File 对象，不转 Base64）
   const processVideoEditFile = async (file: File) => {
     if (!file.type.startsWith('video/')) return alert('请上传视频文件');
-    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
-    if (file.size > maxSize) return alert('视频文件不能超过 2GB');
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) return alert('视频文件不能超过 50MB');
     setVideoEditFile(file);
     const previewUrl = URL.createObjectURL(file);
     setVideoEditPreview(previewUrl);
@@ -732,8 +733,10 @@ export default function AdminPage() {
     setImagePreview(null);
     setVideoForm({ title: '', description: '', duration: '00:00', thumbnail: '', url: '', videoFile: '', category: '二次元', orientation: 'auto' });
     setVideoThumbnailPreview(null); setVideoPreview(null);
+    setVideoEditFile(null);
     setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
     setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
+    setVideoEditUploading(false); setVideoEditUploadProgress(0);
   };
 
   const handleEditVideo = (video: Video) => {
@@ -762,138 +765,30 @@ export default function AdminPage() {
     } catch (error) { alert('删除失败，请重试'); }
   };
 
-  const uploadVideoToCOS = async (file: File): Promise<string> => {
-    const res = await fetch('/api/cos-sts');
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || errData.error || '获取临时密钥失败');
-    }
-    const stsData = await res.json();
-    const { credentials, bucket, region, expiredTime, startTime } = stsData;
-
-    if (!credentials || !bucket || !region) {
-      throw new Error('STS 返回数据不完整: ' + JSON.stringify(stsData));
-    }
-    if (!credentials.tmpSecretId || !credentials.tmpSecretKey) {
-      throw new Error('STS 凭证不完整: ' + JSON.stringify(credentials));
-    }
-
-    const cos = new COS({
-      getAuthorization: function (options, callback) {
-        callback({
-          TmpSecretId: credentials.tmpSecretId,
-          TmpSecretKey: credentials.tmpSecretKey,
-          SecurityToken: credentials.sessionToken,
-          ExpiredTime: expiredTime,
-          StartTime: startTime || Math.floor(Date.now() / 1000),
-        });
-      },
-    });
-
+  // 上传视频文件到 Supabase Storage
+  const uploadVideoToStorage = async (file: File): Promise<string> => {
     const ext = file.name.split('.').pop() || 'mp4';
     const key = `video_edits/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    const uploadStartTime = Date.now();
-    let lastLoaded = 0;
-    let lastTime = uploadStartTime;
-
-    return new Promise((resolve, reject) => {
-      (cos as any).sliceUploadFile(
-        {
-          Bucket: bucket,
-          Region: region,
-          Key: key,
-          Body: file,
-          ACL: 'public-read',
-          Headers: {
-            'x-cos-acl': 'public-read',
-          },
-          SliceSize: 10 * 1024 * 1024,
-          AsyncLimit: 8,
-          onTaskReady: function (taskId: string) {},
-          onProgress: (progressData: any) => {
-            const percent = Math.round((progressData.loaded / progressData.total) * 100);
-            setVideoEditUploadProgress(percent);
-            const now = Date.now();
-            const elapsed = (now - uploadStartTime) / 1000;
-            if (elapsed > 0.5) {
-              const loadedMB = progressData.loaded / (1024 * 1024);
-              const speedMBps = loadedMB / elapsed;
-              let speedStr = '';
-              if (speedMBps > 1) speedStr = `${speedMBps.toFixed(1)} MB/s`;
-              else speedStr = `${(speedMBps * 1024).toFixed(0)} KB/s`;
-              const remainingMB = (progressData.total - progressData.loaded) / (1024 * 1024);
-              const etaSec = speedMBps > 0 ? remainingMB / speedMBps : 0;
-              let etaStr = '';
-              if (etaSec > 60) etaStr = `${Math.floor(etaSec / 60)}分${Math.round(etaSec % 60)}秒`;
-              else if (etaSec > 0) etaStr = `${Math.round(etaSec)}秒`;
-              setVideoEditUploadSpeed(`${speedStr} · 剩余${etaStr}`);
-            }
-            lastLoaded = progressData.loaded;
-            lastTime = now;
-          },
-        },
-        (err: any, data: any) => {
-          if (err) {
-            console.error('COS upload error:', err);
-            reject(err);
-          } else {
-            console.log('COS upload success:', data);
-            const url = data?.Location ? `https://${data.Location}` : `https://${bucket}.cos.${region}.myqcloud.com/${key}`;
-            console.log('Video URL:', url);
-            resolve(url);
-          }
-        }
-      );
-    });
+    return await worksService.uploadToStorage('media', key, file);
   };
 
   // 视频剪辑 CRUD
   const handleSubmitVideoEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (videoEditUploading) return;
+
+    let newVideoFileUrl = videoEditForm.videoFile || '';
+
     try {
-      // 如果有本地视频文件，先上传到腾讯云 COS
-      let videoFileUrl = videoEditForm.videoFile || '';
       if (videoEditFile) {
         setVideoEditUploading(true);
         setVideoEditUploadProgress(0);
-        setVideoEditUploadSpeed('');
         try {
-          videoFileUrl = await uploadVideoToCOS(videoEditFile);
+          newVideoFileUrl = await uploadVideoToStorage(videoEditFile);
         } catch (err: any) {
           console.error('Upload error detail:', err);
-          let msg = '';
-          if (typeof err === 'string') {
-            msg = err;
-          } else if (err?.message) {
-            msg = err.message;
-          } else if (err?.error) {
-            if (typeof err.error === 'string') msg = err.error;
-            else if (err.error.Message) msg = err.error.Message;
-            else if (err.error.message) msg = err.error.message;
-          } else if (err?.Error?.Message) {
-            msg = err.Error.Message;
-          } else if (err?.Message) {
-            msg = err.Message;
-          } else if (err?.detail) {
-            msg = err.detail;
-          }
-          if (!msg) {
-            try {
-              const seen = new WeakSet();
-              msg = JSON.stringify(err, (key, value) => {
-                if (typeof value === 'object' && value !== null) {
-                  if (seen.has(value)) return '[Circular]';
-                  seen.add(value);
-                }
-                return value;
-              }, 2);
-            } catch {
-              msg = String(err);
-            }
-          }
-          alert('视频上传失败：' + (msg || '未知错误'));
+          alert('视频上传失败：' + (err?.message || String(err)));
           setVideoEditUploading(false);
-          setVideoEditUploadSpeed('');
           return;
         }
       }
@@ -903,7 +798,7 @@ export default function AdminPage() {
         description: videoEditForm.description,
         thumbnail: videoEditForm.thumbnail,
         videoUrl: videoEditForm.videoUrl,
-        videoFile: videoFileUrl,
+        videoFile: newVideoFileUrl,
         duration: videoEditForm.duration,
         category: videoEditForm.category,
         tags: videoEditForm.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -915,9 +810,12 @@ export default function AdminPage() {
       } else {
         await worksService.createVideoEdit(data);
       }
+
+
+
       setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
       setEditingVideoEdit(null); setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
-      setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0); setVideoEditUploadSpeed('');
+      setVideoEditFile(null); setVideoEditUploading(false); setVideoEditUploadProgress(0);
       setSubmitted(true); setTimeout(() => setSubmitted(false), 3000);
       loadAllData();
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
@@ -941,13 +839,13 @@ export default function AdminPage() {
         }
       }
       setVideoEditUploading(false);
-      setVideoEditUploadSpeed('');
       alert('保存失败：' + (msg || '请重试'));
     }
   };
 
   const handleEditVideoEdit = (edit: worksService.VideoEdit) => {
     setEditingVideoEdit(edit);
+    setVideoEditFile(null);
     setVideoEditForm({
       title: edit.title,
       description: edit.description || '',
@@ -962,6 +860,8 @@ export default function AdminPage() {
     });
     setVideoEditThumbnailPreview(edit.thumbnail || null);
     setVideoEditPreview(edit.videoFile || null);
+    setVideoEditUploading(false);
+    setVideoEditUploadProgress(0);
     setWorksTab('videoEdit'); setEditorMode('edit');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -973,8 +873,10 @@ export default function AdminPage() {
       setVideoEditList(prev => prev.filter(e => e.id !== id));
       if (editingVideoEdit?.id === id) {
         setEditingVideoEdit(null);
+        setVideoEditFile(null);
         setVideoEditForm({ title: '', description: '', thumbnail: '', videoUrl: '', videoFile: '', duration: '00:00', category: 'MV剪辑', tags: '', software: '', status: 'published' });
         setVideoEditThumbnailPreview(null); setVideoEditPreview(null);
+        setVideoEditUploading(false); setVideoEditUploadProgress(0);
       }
       alert('删除成功！');
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('artworks-updated'));
@@ -1419,16 +1321,13 @@ export default function AdminPage() {
                                     <span className="text-xs" style={{ color: THEME.text.muted }}>{videoEditFile ? `${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
                                     <span className="text-xs font-bold" style={{ color: '#A991FF' }}>{videoEditUploadProgress}%</span>
                                   </div>
-                                  {videoEditUploadSpeed && (
-                                    <p className="text-xs text-center" style={{ color: THEME.text.dim }}>{videoEditUploadSpeed}</p>
-                                  )}
                                 </div>
                               </div>
                             ) : (
                               <>
                                 <Icons.Video className="w-10 h-10 mx-auto mb-2" style={{ color: '#A991FF' }} />
                                 <p className="text-sm" style={{ color: videoEditFileDragOver ? '#A991FF' : THEME.text.muted }}>
-                                  {videoEditFileDragOver ? '松开以上传' : videoEditFile ? `已选择: ${videoEditFile.name} (${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB)` : '点击或拖拽上传视频（最大2GB）'}
+                                  {videoEditFileDragOver ? '松开以上传' : videoEditFile ? `已选择: ${videoEditFile.name} (${(videoEditFile.size / 1024 / 1024).toFixed(1)}MB)` : '点击或拖拽上传视频（最大50MB）'}
                                 </p>
                               </>
                             )}
@@ -1460,9 +1359,6 @@ export default function AdminPage() {
                                     />
                                   </div>
                                   <p className="text-xs text-center font-bold" style={{ color: '#A991FF' }}>{videoEditUploadProgress}%</p>
-                                  {videoEditUploadSpeed && (
-                                    <p className="text-xs text-center" style={{ color: THEME.text.dim }}>{videoEditUploadSpeed}</p>
-                                  )}
                                 </div>
                               </div>
                             )}
