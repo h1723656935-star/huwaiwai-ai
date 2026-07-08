@@ -16,11 +16,19 @@ moves.forEach(({ src, bak }) => {
 });
 
 // Clean previous builds
-if (fs.existsSync('out')) fs.rmSync('out', { recursive: true });
-if (fs.existsSync('.next')) fs.rmSync('.next', { recursive: true });
+if (fs.existsSync('out')) fs.rmSync('out', { recursive: true, force: true });
+if (fs.existsSync('.next')) fs.rmSync('.next', { recursive: true, force: true });
 
-// Create missing directory that Next.js trace collector expects
-fs.mkdirSync(path.join('.next', 'static', 'development'), { recursive: true });
+// Temporarily patch tsconfig to exclude moved API type stubs
+const tsconfigPath = path.join(process.cwd(), 'tsconfig.json');
+const originalTsconfig = fs.readFileSync(tsconfigPath, 'utf8');
+const tsconfig = JSON.parse(originalTsconfig);
+tsconfig.exclude = tsconfig.exclude || [];
+if (!tsconfig.exclude.includes('.next/types/app/api/**')) {
+  tsconfig.exclude.push('.next/types/app/api/**');
+}
+fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2));
+console.log('Patched tsconfig.json to exclude moved API types');
 
 try {
   // Step 2: Build with static export enabled
@@ -47,11 +55,15 @@ try {
     process.exitCode = 1;
   }
 } finally {
-  // Step 3: Restore
+  // Step 3: Restore directories
   moves.forEach(({ src, bak }) => {
     if (fs.existsSync(bak)) {
       fs.renameSync(bak, src);
       console.log(`Restored: ${bak} -> ${src}`);
     }
   });
+
+  // Step 4: Restore tsconfig.json
+  fs.writeFileSync(tsconfigPath, originalTsconfig);
+  console.log('Restored tsconfig.json');
 }

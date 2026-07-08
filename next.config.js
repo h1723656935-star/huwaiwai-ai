@@ -9,6 +9,7 @@ const nextConfig = {
   ...(isCfBuild ? {
     output: 'export',
     trailingSlash: true,
+    outputFileTracing: false,
   } : {}),
 }
 
