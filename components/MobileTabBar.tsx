@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, Image, Video, Film, User } from "lucide-react";
+import { Home, Image, Video, User } from "lucide-react";
 
 interface MobileTabBarProps {
   activeTab: string;
@@ -12,7 +12,6 @@ const tabs = [
   { id: "home", label: "首页", icon: Home },
   { id: "artworks", label: "作品", icon: Image },
   { id: "videos", label: "视频", icon: Video },
-  { id: "video-edits", label: "剪辑", icon: Film },
   { id: "about", label: "关于", icon: User },
 ];
 
